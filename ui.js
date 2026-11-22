@@ -244,7 +244,7 @@ function renderTabs(sel){
     el('span',{},el('span',{class:'coin'},pl.coins),t('ui_coins')), el('span',{},el('span',{class:'seal'},pl.infl),t('ui_infl')),
     el('span',{},'🏛 '+E.vp(S,tab)+' '+t('ui_vp')+(vpB.length?' ('+vpB.join(', ')+')':'')),
     el('span',{},'🐎 '+pl.trav.map((x,i)=>E.TR[i]+':'+x).join(' ')+' · '+pl.cities+' '+t('ui_cities')),
-    pl.virt?el('span',{},'+1 '+TN(pl.virt.t)+' '+LN(pl.virt.l)):null));
+    E.wild(pl)?el('span',{},t('ui_wild')):null));
   const rowEl=(label,arr,extra)=>{
     const cs=el('div',{class:'ucards'});
     arr.forEach((co,k)=>{ const w=el('div',{class:'ucard'}); const im=cardImg(co.id); if(sel.has(co.id)) im.classList.add('sel'); w.appendChild(im); w.appendChild(el('span',{class:'pos'},k+1));

@@ -24,8 +24,11 @@ const cn = id => CARD[id].name;
 function chars(pl){ const a=[...pl.students,...pl.profs,...pl.emer]; if(pl.rector) a.push(pl.rector.card); return a; }
 function cardWoa(co){ const r=[]; const c=CARD[co.id]; if(c.woa) r.push(c.woa); (co.letters||[]).forEach(w=>r.push(w)); return r; }
 function woaList(pl,exclStudents){ const r=[]; (exclStudents?[...pl.profs,...pl.emer,...(pl.rector?[pl.rector.card]:[])]:chars(pl)).forEach(co=>r.push(...cardWoa(co))); return r; }
-function countType(pl,t){ let n=chars(pl).filter(co=>CARD[co.id].type===t).length; if(pl.virt&&pl.virt.t===t) n++; return n; }
-function countLvl(pl,l){ let n=chars(pl).filter(co=>CARD[co.id].lvl===l).length; if(pl.virt&&pl.virt.l===l) n++; return n; }
+// Recteur 3b : un personnage joker, du type et du niveau voulus, recompté à chaque vérification
+function wild(pl){ return !!(pl.rector && pl.rector.tile==='3b'); }
+function countTypeRaw(pl,t){ return chars(pl).filter(co=>CARD[co.id].type===t).length; }
+function countType(pl,t){ return countTypeRaw(pl,t)+(wild(pl)?1:0); }
+function countLvl(pl,l){ return chars(pl).filter(co=>CARD[co.id].lvl===l).length+(wild(pl)&&l>=1?1:0); }
 function journeys(pl){ return pl.trav.filter(x=>x>=12).length; }
 function hasRect(pl,id){ return !!(pl.rector && pl.rector.tile===id); }
 function vp(s,p){ const pl=P(s,p); return pl.played.length + Object.values(pl.emTok).reduce((a,b)=>a+b,0) + (pl.rector?1:0) + pl.bologna + pl.constTok.length; }
@@ -111,7 +114,7 @@ function bookOk(s,p,bid){
 function objOk(s,p,tile){
   const pl=P(s,p);
   switch(tile){
-    case 'A1': return D.TYPES.every(t=>countType(pl,t)>=2);
+    case 'A1': return D.TYPES.reduce((a,t)=>a+Math.max(0,2-countTypeRaw(pl,t)),0)<=(wild(pl)?1:0);
     case 'A2': return D.TYPES.some(t=>countType(pl,t)>=6);
     case 'B1': return journeys(pl)>=1 && pl.coins>=6 && pl.infl>=6;
     case 'B2': return journeys(pl)>=2;
@@ -125,7 +128,7 @@ function objOk(s,p,tile){
 function objProgress(s,p,tile){
   const pl=P(s,p), cap=x=>Math.max(0,Math.min(1,x));
   switch(tile){
-    case 'A1': return D.TYPES.reduce((a,t)=>a+Math.min(2,countType(pl,t)),0)/8;
+    case 'A1': return Math.min(1,(D.TYPES.reduce((a,t)=>a+Math.min(2,countTypeRaw(pl,t)),0)+(wild(pl)?1:0))/8);
     case 'A2': return cap(Math.max(...D.TYPES.map(t=>countType(pl,t)))/6);
     case 'B1': return cap(Math.max(...pl.trav)/12)*0.5+cap(Math.min(pl.coins,6)/6)*0.25+cap(Math.min(pl.infl,6)/6)*0.25;
     case 'B2': return cap(pl.trav.slice().sort((a,b)=>b-a).slice(0,2).reduce((a,b)=>a+b,0)/24);
@@ -409,7 +412,6 @@ function doPromo(s,p,to,idx,free){
     if(!free) pay(pl,Math.max(0,idx+1-red),8); pl.profs.splice(idx,1); pl.rector={card:co,tile,type:ty}; s.rectSlots[ty]=null;
     log(s,M('log_rector',pl.name,cn(co.id),M('R_'+tile)));
     if(tile==='2a') drawBooks(s,p,1);
-    if(tile==='3b') s.stack.push({k:'rectChoice',p});
   }
 }
 
@@ -659,5 +661,5 @@ function aiChoose(s,depth){
   return best;
 }
 
-global.MagEngine = {W_VERSION, setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
+global.MagEngine = {wild, W_VERSION, setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
 })(typeof window!=='undefined'?window:globalThis);
