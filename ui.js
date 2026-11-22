@@ -697,7 +697,7 @@ function renderSim(light){
       el('button',{class:'primary',disabled:busy?'':null,onclick:()=>{ simCfg.countries=pickedCountries('#cboxS'); runJob('batch'); }},t('si_run')),
       busy&&job.kind==='batch'?el('button',{onclick:stopJob},t('si_stop')):null),
     el('div',{class:'flab row-f',style:'justify-content:space-between'},el('span',{},t('si_countries')),el('button',{class:'dice',onclick:()=>randomCountries('#cboxS')},el('span',{class:'die'},'⚄'),el('span',{},t('si_random')))),
-    el('div',{class:'muted'},t('ui_tracksSub')),cbox));
+    cbox));
   countryBoxes('#cboxS'); document.querySelectorAll('#cboxS input').forEach(x=>{ if(simCfg.countries.includes(x.value)) x.checked=true; }); limitCountries('#cboxS');
   // entraînement
   box.appendChild(el('div',{class:'pcard'},el('h3',{},t('si_train')),el('p',{class:'muted',style:'margin-top:0'},t('si_trainSub')),
