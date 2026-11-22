@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magister</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#2b1d10;--parch:#f3e7cc;--parch2:#e9d7b0;--line:#b89a64;--deep:#5b3a1a;--gold:#c99a2e;--red:#8e1f1f;--green:#2e7d32;--orange:#d9731a;--blue:#1f6f8b;--purple:#7b3f7f;--shadow:0 2px 8px rgba(60,35,10,.25)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}html,body{overflow-x:hidden;margin:0;background:#2a1e14;color:var(--ink);font-family:'EB Garamond',Georgia,serif;font-size:16px}
+body{background:radial-gradient(ellipse at top,#4a3422 0%,#2a1e14 60%) fixed}
+h1,h2,h3,.fell{font-family:'IM Fell English SC',Georgia,serif;font-weight:400;letter-spacing:.02em}
+button{font-family:inherit;font-size:15px;cursor:pointer;border:1px solid var(--deep);background:linear-gradient(#fbf3df,#ead6aa);color:var(--ink);border-radius:6px;padding:7px 12px;box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 1px 3px rgba(0,0,0,.25)}
+button:hover{background:linear-gradient(#fff8e8,#f1dfb6);border-color:#000}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:linear-gradient(#a8322a,#7c1b16);color:#fff3df;border-color:#4b0d0a}
+button.primary:hover{background:linear-gradient(#bc3b31,#8a1f19)}
+input,select{font-family:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#fffaf0;color:var(--ink)}
+.panel{background:var(--parch);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:12px}
+.hidden{display:none!important}
+.board,.side,.panel{min-width:0}
+.panel{overflow-x:auto}
+@media(max-width:700px){.cell{min-height:0}.cell .n{font-size:9px}.cell .travs .dot{width:8px;height:8px}.track{gap:2px}.topbar h1{font-size:24px}.ucard{width:78px}#decide .opts button{font-size:14px;padding:6px 9px}}
+/* ---------- Lobby ---------- */
+#lobby{--wine:#3b0a0b;--wine2:#5a1414;--goldA:#f3d27a;--goldB:#b8862b}
+.hero{position:relative;overflow:hidden;border-bottom:3px solid var(--goldB);background:var(--wine)}
+.hero::before{content:"";position:absolute;inset:-40px;background:url(tok/cover.webp) center 30%/cover;filter:blur(14px) brightness(.45) saturate(1.1)}
+.hero::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(59,10,11,.15),rgba(40,6,6,.85) 75%)}
+.langbar{position:absolute;top:14px;right:16px;z-index:3;display:flex;gap:2px;background:rgba(25,10,5,.55);border:1px solid rgba(243,210,122,.45);border-radius:20px;padding:3px;backdrop-filter:blur(4px)}
+.langbar button{background:none;border:none;box-shadow:none;color:#f3e7cc;font-family:'IM Fell English SC';font-size:15px;padding:3px 11px;border-radius:16px}
+.langbar button:hover{background:rgba(243,210,122,.18)}
+.langbar button.on{background:linear-gradient(var(--goldA),var(--goldB));color:#2b1405}
+.hero-in{position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:46px 28px;display:flex;gap:48px;align-items:center}
+.hero .cover{width:min(400px,38vw);flex:none;border-radius:6px;box-shadow:0 0 0 1px #000,0 0 0 4px var(--goldB),0 0 0 5px #000,0 24px 50px rgba(0,0,0,.75)}
+.hero .txt{flex:1;min-width:0;color:#f3e7cc}
+.hero .logo{width:min(440px,100%);display:block;filter:drop-shadow(0 4px 8px rgba(0,0,0,.75))}
+.hero .rule{height:1px;margin:18px 0 16px;background:linear-gradient(90deg,var(--goldB),transparent)}
+.hero .tag{font-size:20px;line-height:1.45;margin:0 0 16px}
+.hero .cred{font-style:italic;font-size:15px;color:var(--goldA);margin:0;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+.hero .cred span{display:inline-flex;align-items:center;gap:7px}.hero .cred img{height:18px}
+.pubrow{display:flex;align-items:center;gap:22px;margin-top:24px;flex-wrap:wrap}
+.pubrow img{height:48px;border-radius:4px;box-shadow:0 3px 10px rgba(0,0,0,.6)}
+.cta{font-family:'IM Fell English SC';font-size:20px;color:#2b1405;text-decoration:none;background:linear-gradient(var(--goldA),var(--goldB));padding:9px 26px;border-radius:6px;box-shadow:0 0 0 1px #000,0 6px 16px rgba(0,0,0,.5)}
+.cta:hover{filter:brightness(1.08)}
+.fan{display:flex;justify-content:center;margin:30px auto 56px;height:215px;position:relative}
+.fan img{width:128px;border-radius:9px;box-shadow:0 8px 20px rgba(0,0,0,.55);margin:0 -22px;transform-origin:50% 120%;transition:transform .25s ease, box-shadow .25s ease;border:2px solid #e9d7b0}
+.fan img:hover{transform:translateY(-18px) rotate(0)!important;z-index:5;box-shadow:0 18px 34px rgba(0,0,0,.7)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 18px}
+.orn{display:flex;align-items:center;gap:14px;justify-content:center;color:var(--goldA);margin:22px 0 18px}
+.orn::before,.orn::after{content:"";height:1px;flex:1;max-width:260px;background:linear-gradient(90deg,transparent,var(--goldB))}
+.orn::after{transform:scaleX(-1)}
+.orn span{font-family:'IM Fell English SC';font-size:28px;letter-spacing:.04em;text-shadow:0 2px 0 #000}
+.lgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media(max-width:820px){.lgrid{grid-template-columns:minmax(0,1fr)}}.mode{min-width:0}
+@media(max-width:480px){.tog button{padding:5px 7px;font-size:13px}.pseat{gap:6px}.pseat .tok{width:28px;height:28px}}
+.mode{position:relative;background:radial-gradient(ellipse at 50% 0%,#fbf3df 0%,#f3e7cc 55%,#e7d3a8 100%);border-radius:6px;padding:0 20px 20px;
+  box-shadow:0 12px 28px rgba(0,0,0,.45),inset 0 0 0 1px #8a6a33,inset 0 0 0 5px #f3e7cc,inset 0 0 0 6px var(--goldB)}
+.mode h2{margin:0 -20px 4px;padding:12px 20px 10px;text-align:center;font-size:27px;color:var(--goldA);background:linear-gradient(var(--wine2),var(--wine));border-radius:6px 6px 0 0;text-shadow:0 2px 0 #000;border-bottom:1px solid var(--goldB)}
+.ribbons{display:flex;height:5px;margin:0 -20px 14px}.ribbons i{flex:1}.ribbons i:nth-child(1){background:var(--green)}.ribbons i:nth-child(2){background:var(--orange)}.ribbons i:nth-child(3){background:var(--blue)}.ribbons i:nth-child(4){background:var(--purple)}
+.mode .sub{font-style:italic;text-align:center;margin-bottom:10px;opacity:.8}
+.mode .lab{font-family:'IM Fell English SC';font-size:19px;color:var(--wine2)}
+.mode .actions{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.mode .actions .primary{font-size:17px;padding:9px 22px;font-family:'IM Fell English SC';letter-spacing:.03em}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:6px}
+@media(max-width:820px){.steps{grid-template-columns:1fr}}
+.step{display:flex;gap:12px;align-items:flex-start;color:#f3e7cc;font-size:16px;line-height:1.4}
+.step .seal{flex:none;width:38px;height:38px;font-size:18px;font-family:'IM Fell English SC'}
+.foot{display:flex;align-items:center;justify-content:center;gap:12px;color:#cdb58a;font-size:14px;margin:34px 0 40px;flex-wrap:wrap}.foot img{height:40px;border-radius:4px;box-shadow:0 3px 10px rgba(0,0,0,.5)}
+@media(max-width:760px){
+ .hero-in{flex-direction:column;padding:56px 18px 28px;gap:24px}
+ .hero .cover{width:78vw}
+ .hero .logo{display:none}
+ .hero .rule{margin-top:0}
+ .hero .tag{font-size:17px}
+ .fan{height:130px;margin:22px auto 36px}.fan img{width:66px;margin:0 -12px;border-width:1px}
+}
+.ro{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media(max-width:1300px){.ro{grid-template-columns:1fr}}
+.ro .slots{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:1300px){.ro .slots{grid-template-columns:repeat(4,minmax(0,1fr))}}@media(max-width:700px){.ro .slots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ro .tslot{min-height:70px}.ro .tslot img{width:52px}
+button.small{padding:3px 10px;font-size:14px}
+#langSel{font-size:14px;padding:4px}
+.seat{display:flex;gap:6px;align-items:center;margin:6px 0}
+.seat input{flex:1;min-width:0}
+.dot{width:14px;height:14px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.5);flex:none}
+.row-f{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.muted{opacity:.7;font-size:14px}
+
+/* zones de choix */
+.flab{font-family:'IM Fell English SC';font-size:19px;color:var(--wine2);margin:16px 0 6px;display:flex;align-items:center;gap:8px}
+.flab::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+.flab.row-f::after{display:none}
+.seg{display:flex;gap:8px}
+.seg button{flex:1;font-family:'IM Fell English SC';font-size:24px;padding:6px 0;border:1px solid #8a6a33;background:linear-gradient(#fffaf0,#efdfba);color:var(--wine2);border-radius:8px;box-shadow:0 2px 0 #c9ad78}
+.seg button:hover{background:#fff6e2}
+.seg button.on{background:linear-gradient(var(--wine2),var(--wine));color:var(--goldA);border-color:#000;box-shadow:inset 0 0 0 1px var(--goldB),0 3px 8px rgba(0,0,0,.35)}
+.pseat{display:flex;align-items:center;gap:10px;background:#fffaf0;border:1px solid #cfb37e;border-radius:10px;padding:6px 8px 6px 6px;margin:7px 0;box-shadow:0 1px 0 #e3cf9f}
+.pseat .tok{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-family:'IM Fell English SC';font-size:17px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25),0 0 0 2px #fff,0 0 0 3px rgba(0,0,0,.35)}
+.pseat input{flex:1;min-width:0;border:none;background:transparent;font-size:17px;padding:4px 2px;border-bottom:1px dashed #cfb37e;border-radius:0}
+.pseat input:focus{outline:none;border-bottom-color:var(--wine2)}
+.tog{display:flex;border:1px solid #8a6a33;border-radius:20px;overflow:hidden;flex:none}
+.tog button{border:none;border-radius:0;box-shadow:none;background:transparent;font-size:14px;padding:5px 11px;color:var(--deep)}
+.tog button.on{background:linear-gradient(var(--wine2),var(--wine));color:var(--goldA)}
+.dice{display:inline-flex;align-items:center;gap:6px;font-family:'IM Fell English SC';font-size:16px;padding:4px 12px;border-radius:20px;background:linear-gradient(var(--goldA),var(--goldB));border-color:#6b4a10;color:#2b1405}
+.dice .die{font-size:22px;line-height:1}
+.dice:active .die{transform:rotate(90deg)}
+.cbox{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}
+@media(max-width:480px){.cbox{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.cbox label{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font-size:14px;line-height:1.15;background:#fffaf0;border:1px solid #cfb37e;border-radius:10px;padding:10px 4px 8px;cursor:pointer;transition:transform .12s, box-shadow .12s;min-height:92px;justify-content:flex-start}
+.cbox label:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(60,35,10,.2)}
+.cbox input{position:absolute;opacity:0;pointer-events:none}
+.cbox img{width:40px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))}
+.cbox label:has(input:checked){background:linear-gradient(#fff4da,#f3dfae);border-color:var(--goldB);box-shadow:0 0 0 2px var(--goldB),0 4px 10px rgba(60,35,10,.25)}
+.cbox label:has(input:checked)::after{content:"✓";position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;background:radial-gradient(#b32b26,#6e1411);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;border:2px solid #4a0c09;box-shadow:0 2px 4px rgba(0,0,0,.4)}
+.cbox label:has(input:disabled){opacity:.45;cursor:default;transform:none;box-shadow:none}
+.cbox .ctr{font-size:12px;opacity:.75}
+
+/* navigation & vues */
+.lnav{position:sticky;top:0;z-index:10;display:flex;justify-content:center;gap:4px;background:linear-gradient(#2a120c,#1d0d08);border-bottom:1px solid var(--goldB);padding:6px 8px;box-shadow:0 4px 14px rgba(0,0,0,.4);flex-wrap:wrap}
+.lnav button{background:none;border:1px solid transparent;box-shadow:none;color:#e9d7b0;font-family:'IM Fell English SC';font-size:18px;padding:5px 16px;border-radius:20px}
+.lnav button:hover{border-color:rgba(243,210,122,.4)}
+.lnav button.on{background:linear-gradient(var(--goldA),var(--goldB));color:#2b1405}
+.view{padding-bottom:10px}
+.pcard{background:radial-gradient(ellipse at 50% 0%,#fbf3df 0%,#f3e7cc 55%,#e7d3a8 100%);border-radius:6px;padding:18px 20px;margin-top:20px;box-shadow:0 12px 28px rgba(0,0,0,.45),inset 0 0 0 1px #8a6a33,inset 0 0 0 5px #f3e7cc,inset 0 0 0 6px var(--goldB)}
+.pcard h3{font-family:'IM Fell English SC';font-weight:400;font-size:24px;color:var(--wine2);margin:0 0 10px}
+/* couleurs */
+.pal{display:flex;gap:6px;flex-wrap:wrap;padding:6px 0 2px 44px}
+.pal button{width:28px;height:28px;border-radius:50%;padding:0;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+.pal button.on{box-shadow:0 0 0 2px var(--wine2),0 0 0 4px var(--goldB)}
+.pal button:disabled{opacity:.25}
+.pseat .tok{cursor:pointer;border:none;padding:0}
+/* tutoriel */
+.tuto{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:26px;align-items:center}
+@media(max-width:820px){.tuto{grid-template-columns:1fr}}
+.tuto .vis{display:flex;justify-content:center;align-items:center;gap:8px;min-height:260px;flex-wrap:wrap}
+.tuto .vis img{max-width:100%;max-height:340px;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+.tuto .vis img.sm{max-height:240px}
+.tuto h3{font-size:30px}
+.tuto p{font-size:18px;line-height:1.5;margin:0}
+.dots{display:flex;gap:6px;justify-content:center;margin:16px 0 4px}
+.dots span{width:10px;height:10px;border-radius:50%;background:#cdb27d;cursor:pointer}
+.dots span.on{background:var(--wine2);box-shadow:0 0 0 2px var(--goldB)}
+.tnav{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap}
+.undo{margin-left:12px;background:linear-gradient(#f3e7cc,#d9c28f);font-family:'EB Garamond';font-size:14px;vertical-align:middle}
+.home{font-family:'IM Fell English SC'}
+#coach{position:fixed;right:14px;z-index:21;max-width:420px;background:#fff6df;border:1px solid var(--goldB);border-left:6px solid var(--wine2);border-radius:8px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.45);font-size:15px;line-height:1.4}
+#coach b{font-family:'IM Fell English SC';font-size:17px;color:var(--wine2);font-weight:400}
+#coach .row-f{margin-top:8px;justify-content:flex-end}
+/* stats */
+.filters{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:16px;color:#f3e7cc}
+.filters label{display:flex;gap:6px;align-items:center;font-family:'IM Fell English SC';font-size:17px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:16px}
+.kpi{background:#f3e7cc;border-radius:8px;padding:12px 14px;box-shadow:inset 0 0 0 1px #8a6a33,inset 0 0 0 4px #f3e7cc,inset 0 0 0 5px var(--goldB)}
+.kpi .v{font-family:'IM Fell English SC';font-size:34px;color:var(--wine2);line-height:1}
+.kpi .l{font-size:14px;opacity:.8;margin-top:4px}
+.stbl{width:100%;border-collapse:collapse;font-size:14.5px}
+.stbl th{text-align:left;font-weight:600;border-bottom:2px solid var(--goldB);padding:6px 6px;cursor:pointer;white-space:nowrap;user-select:none}
+.stbl th.num,.stbl td.num{text-align:right}
+.stbl td{border-bottom:1px solid #dcc79a;padding:4px 6px;vertical-align:middle}
+.stbl tr:hover td{background:#fff6df}
+.stbl img.th{width:30px;border-radius:3px;vertical-align:middle;margin-right:6px;cursor:zoom-in}
+.bar{display:inline-block;height:8px;border-radius:0 4px 4px 0;background:var(--wine2);vertical-align:middle;margin-left:6px;min-width:1px}
+.scroll{max-height:520px;overflow:auto}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}@media(max-width:820px){.two{grid-template-columns:1fr}}
+/* simulations */
+.prog{height:12px;background:#e3cf9f;border-radius:6px;overflow:hidden;margin:10px 0}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--wine2),#a8322a);width:0}
+.flag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:13px;margin-left:6px}
+.flag.ok{background:#d9eed6;color:#1f5a1a}.flag.warn{background:#fbe3c8;color:#7a3e05}
+.glog{font-size:14px;max-height:220px;overflow:auto;margin-top:8px}
+.glog div{padding:2px 0;border-bottom:1px dotted #d8c393}
+.ctrls{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
+.ctrls label{display:flex;flex-direction:column;gap:4px;font-family:'IM Fell English SC';font-size:16px;color:var(--wine2)}
+/* ---------- Jeu ---------- */
+#game{padding:8px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:8px;max-width:1700px;margin:0 auto 150px}
+@media(max-width:1100px){#game{grid-template-columns:1fr}}
+.topbar{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:#f3e7cc}
+.topbar h1{margin:0 8px 0 0;font-size:30px;color:#f6d98c}
+.score{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:6px;background:var(--parch);color:var(--ink);border-radius:20px;padding:3px 10px;border:2px solid transparent;font-weight:600}
+.chip.active{border-color:#f6d98c;box-shadow:0 0 0 2px #000,0 0 12px #f6d98c}
+.chip .vp{background:var(--deep);color:#fff;border-radius:10px;padding:0 7px;font-size:13px}
+.spacer{flex:1}
+/* plateau */
+.board{display:grid;gap:8px}
+.rowwrap{display:flex;gap:8px;align-items:stretch;overflow-x:auto;padding-bottom:4px}
+.decks{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;min-width:74px;font-size:13px;text-align:center}
+.decks img{width:64px;border-radius:5px;box-shadow:var(--shadow)}
+.slot{position:relative;flex:1 1 0;min-width:96px;max-width:150px}
+.slot .cost{position:absolute;top:-9px;left:50%;transform:translateX(-50%);z-index:2}
+.card{width:100%;border-radius:7px;box-shadow:var(--shadow);display:block;transition:transform .12s, box-shadow .12s;background:#ddd}
+.card.sel{outline:4px solid #f6d98c;box-shadow:0 0 0 6px #000,0 0 18px #f6d98c;cursor:pointer}
+.card.sel:hover{transform:translateY(-4px) scale(1.02)}
+.empty{aspect-ratio:300/444;border:2px dashed var(--line);border-radius:7px;display:flex;align-items:center;justify-content:center;opacity:.6;font-size:13px}
+.seal{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:radial-gradient(#b32b26,#6e1411);color:#fff;font-weight:700;font-size:14px;border:2px solid #4a0c09;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.coin{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:radial-gradient(#f7d66b,#c48f1c);color:#4a3000;font-weight:700;font-size:14px;border:2px solid #8a6210;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.seal.free{background:radial-gradient(#5a9d4f,#2e5f27);border-color:#1f3f1a}
+.tracks{display:grid;gap:6px}
+.track{display:grid;grid-template-columns:120px repeat(13,minmax(0,1fr));gap:3px;align-items:center}
+.track .lab{display:flex;gap:6px;align-items:center;font-size:14px;line-height:1.1}
+.track .lab img{width:30px}
+.cell{position:relative;aspect-ratio:1;min-height:34px;border-radius:6px;background:#efe1bf;border:1px solid #cdb27d;display:flex;align-items:flex-end;justify-content:center}
+.cell .n{position:absolute;top:1px;left:3px;font-size:11px;opacity:.6}
+.cell.city{background-size:cover;background-position:center;border-color:var(--deep)}
+.cell.finish{border:2px solid var(--deep)}
+.cell .travs{display:flex;flex-wrap:wrap;gap:1px;justify-content:center;padding:2px}
+.cell .travs .dot{width:12px;height:12px;box-shadow:0 0 0 1px #fff}
+.slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media(max-width:700px){.slots{grid-template-columns:repeat(2,minmax(0,1fr))}.track{grid-template-columns:70px repeat(13,minmax(0,1fr))}.track .lab span{display:none}}
+.tslot{border-radius:8px;padding:6px;border:2px solid;background:#fbf3df;display:flex;gap:6px;align-items:center;font-size:13px;min-height:86px}
+.tslot img{width:62px;border-radius:5px;cursor:zoom-in}
+.tslot .vps{display:flex;gap:2px}
+.tslot .vps img{width:24px;cursor:default}
+.t-A{border-color:var(--green)}.t-M{border-color:var(--orange)}.t-N{border-color:var(--blue)}.t-R{border-color:var(--purple)}
+.tbadge{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:3px;vertical-align:-1px}
+.b-A{background:var(--green)}.b-M{background:var(--orange)}.b-N{background:var(--blue)}.b-R{background:var(--purple)}
+.letters{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.letters img{width:36px;border-radius:4px}
+.sec{font-family:'IM Fell English SC';font-size:20px;margin:0 0 6px;display:flex;align-items:center;gap:8px}
+/* universités */
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.tabs button{padding:4px 10px;font-size:14px}
+.tabs button.on{background:var(--deep);color:#fff}
+.uni{display:grid;gap:8px}
+.res{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-weight:600}
+.res span{display:flex;gap:5px;align-items:center}
+.urow{display:flex;gap:8px;align-items:flex-start}
+.urow .rl{writing-mode:vertical-rl;transform:rotate(180deg);font-family:'IM Fell English SC';font-size:15px;opacity:.75;text-align:center}
+.ucards{display:flex;gap:6px;flex-wrap:wrap;min-height:60px;flex:1}
+.ucard{position:relative;width:96px}
+.ucard .pos{position:absolute;top:2px;left:2px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;border-radius:8px;padding:0 5px}
+.ucard .lt{position:absolute;bottom:3px;right:3px;display:flex;gap:2px}
+.ucard .lt img{width:22px;border-radius:3px;box-shadow:0 0 0 1px #000}
+.hand{display:flex;gap:6px;flex-wrap:wrap}
+.hand img{width:84px;border-radius:6px;box-shadow:var(--shadow);cursor:zoom-in}
+.hand img.ok{outline:3px solid #2e7d32}
+.vpline{font-size:14px}
+/* côté droit */
+.side{display:grid;gap:8px;align-content:start}
+.log{max-height:520px;overflow:auto;font-size:14px;line-height:1.35}
+.log div{padding:2px 0;border-bottom:1px dotted #d8c393}
+/* barre de décision */
+#decide{position:fixed;left:0;right:0;bottom:0;z-index:20;background:linear-gradient(#3d2a18,#22170d);color:#f3e7cc;border-top:2px solid #f6d98c;padding:8px 12px;max-height:46vh;overflow:auto}
+#decide .q{font-family:'IM Fell English SC';font-size:20px;margin-bottom:6px;color:#f6d98c}
+#decide .opts{display:flex;gap:6px;flex-wrap:wrap}
+#decide .opts button{max-width:520px;text-align:left}
+#decide .wait{font-style:italic}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #f6d98c;border-top-color:transparent;border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* zoom */
+#zoom{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+#zoom .zb{display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:900px}
+#zoom img{max-height:80vh;max-width:min(420px,90vw);border-radius:12px;box-shadow:0 10px 40px #000}
+#zoom .zt{background:var(--parch);border-radius:10px;padding:14px;max-width:360px;font-size:16px}
+#zoom .zt h3{margin:0 0 6px;font-size:26px}
+.endbox{text-align:center}
+.endbox table{margin:8px auto;border-collapse:collapse}
+.endbox td,.endbox th{padding:4px 10px;border-bottom:1px solid var(--line)}
+.code{font-family:monospace;font-size:22px;letter-spacing:3px;background:#fffaf0;border:1px dashed var(--deep);padding:2px 10px;border-radius:6px}
+.note{background:#fff4d6;border-left:4px solid var(--gold);padding:6px 10px;border-radius:4px;font-size:14px}
+</style>
+</head>
+<body>
+<div id="lobby">
+  <header class="hero">
+    <div class="langbar"><button data-lang="fr">FR</button><button data-lang="en">EN</button><button data-lang="it">IT</button></div>
+    <div class="hero-in">
+      <img class="cover" src="tok/cover.webp" alt="Magister">
+      <div class="txt">
+        <img class="logo" src="tok/logo.webp" alt="Magister">
+        <div class="rule"></div>
+        <p class="tag" data-i18n="ui_tag"></p>
+        <p class="cred"><span><img src="tok/ic_book.png" alt="">Flaminia Brasini, Virginio Gigli &amp; Marco Pranzo</span><span><img src="tok/ic_brush.png" alt="">Miguel Coimbra</span><span data-i18n="ui_players"></span></p>
+        <div class="pubrow"><img src="tok/mosaic.webp" alt="Mosaic Studio"><a href="#play" class="cta" data-i18n="ui_play"></a></div>
+      </div>
+    </div>
+  </header>
+  <nav class="lnav"><button data-v="play" data-i18n="nav_play"></button><button data-v="tuto" data-i18n="nav_tuto"></button><button data-v="stats" data-i18n="nav_stats"></button><button data-v="sim" data-i18n="nav_sim"></button></nav>
+  <div id="v-play" class="view">
+  <div class="fan" id="fan"></div>
+  <div class="wrap">
+    <div class="orn" id="play"><span data-i18n="ui_choose"></span></div>
+    <div class="lgrid">
+      <section class="mode">
+        <h2 data-i18n="ui_local"></h2><div class="ribbons"><i></i><i></i><i></i><i></i></div>
+        <div class="sub" data-i18n="ui_localSub"></div>
+        <div class="flab" data-i18n="ui_nPlayers"></div>
+        <div class="seg" id="nSeg"><button data-n="2">2</button><button data-n="3">3</button><button data-n="4">4</button></div>
+        <div class="flab" data-i18n="ui_seatsLab"></div>
+        <div id="localSeats"></div>
+        <div class="flab row-f" style="justify-content:space-between"><span data-i18n="ui_tracks"></span><button id="randL" class="dice"><span class="die">⚄</span><span data-i18n="ui_random"></span></button></div>
+        <div class="muted" data-i18n="ui_tracksSub"></div>
+        <div class="cbox" id="cboxL"></div>
+        <div class="actions"><button class="primary" id="startLocal" data-i18n="ui_start"></button><button id="resumeLocal" class="hidden" data-i18n="ui_resume"></button></div>
+      </section>
+      <section class="mode">
+        <h2 data-i18n="ui_online"></h2><div class="ribbons"><i></i><i></i><i></i><i></i></div>
+        <div class="sub" data-i18n="ui_onlineSub"></div>
+        <div id="onlineOff" class="note" data-i18n="ui_onlineWait"></div>
+        <div id="onlineOn" class="hidden">
+          <div class="seat"><span data-i18n="ui_yourName"></span><input id="myName" maxlength="18"></div>
+          <div class="actions"><button class="primary" id="createTable" data-i18n="ui_create"></button></div>
+          <div style="margin:14px 0 4px;text-align:center" data-i18n="ui_orJoin"></div>
+          <div class="row-f" style="justify-content:center"><input id="joinCode" maxlength="6" placeholder="CODE" style="text-transform:uppercase;width:130px;text-align:center;letter-spacing:3px"><button id="joinBtn" data-i18n="ui_join"></button></div>
+          <div id="tableBox" class="hidden" style="margin-top:14px"></div>
+          <div id="onlineMsg" class="muted" style="margin-top:6px"></div>
+        </div>
+      </section>
+    </div>
+    <div class="orn"><span data-i18n="ui_howTitle"></span></div>
+    <div class="steps">
+      <div class="step"><span class="seal">1</span><span data-i18n="ui_step1"></span></div>
+      <div class="step"><span class="seal">2</span><span data-i18n="ui_step2"></span></div>
+      <div class="step"><span class="seal">3</span><span data-i18n="ui_step3"></span></div>
+    </div>
+  </div>
+  </div>
+  <div id="v-tuto" class="view hidden"><div class="wrap" id="tuto"></div></div>
+  <div id="v-stats" class="view hidden"><div class="wrap" id="stats"></div></div>
+  <div id="v-sim" class="view hidden"><div class="wrap" id="sim"></div></div>
+  <div class="wrap">
+    <div class="foot"><img src="tok/mosaic.webp" alt="Mosaic Studio"><span>Magister — Flaminia Brasini, Virginio Gigli &amp; Marco Pranzo · © Mosaic Studio</span></div>
+  </div>
+</div>
+
+<div id="game" class="hidden">
+  <div class="topbar"><img src="tok/logo.webp" alt="Magister" style="height:42px;margin-right:6px"><div class="score" id="score"></div><div class="spacer"></div><span id="tinfo"></span>
+    <select id="langSel"><option value="fr">FR</option><option value="en">EN</option><option value="it">IT</option></select><button id="quit" class="home"><span>🏠</span> <span data-i18n="ui_home"></span></button></div>
+  <div class="board">
+    <div class="ro"><div class="panel"><div class="sec" data-i18n="ui_rectors"></div><div class="slots" id="rslots"></div></div><div class="panel"><div class="sec" data-i18n="ui_objs"></div><div class="slots" id="oslots"></div></div></div>
+    <div class="panel">
+      <div class="sec"><span data-i18n="ui_row"></span> <span class="muted" style="font-family:'EB Garamond'" data-i18n="ui_rowSub"></span></div>
+      <div class="rowwrap" id="row"></div>
+    </div>
+    <div class="panel"><div class="sec" data-i18n="ui_travel"></div><div class="tracks" id="tracks"></div></div>
+    <div class="panel"><div class="sec" data-i18n="ui_unis"></div><div class="tabs" id="tabs"></div><div class="uni" id="uni"></div></div>
+  </div>
+  <div class="side">
+    <div class="panel"><div class="sec" data-i18n="ui_letters"></div><div class="letters" id="letters"></div><div id="tokens" class="muted" style="margin-top:6px"></div></div>
+    <div class="panel"><div class="sec" data-i18n="ui_log"></div><div class="log" id="log"></div></div>
+  </div>
+</div>
+<div id="coach" class="hidden"></div>
+<div id="decide" class="hidden"></div>
+<div id="zoom" class="hidden"></div>
+
+<script src="data.js"></script>
+<script src="i18n.js"></script>
+<script src="i18n2.js"></script>
+<script src="engine.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
