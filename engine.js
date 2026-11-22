@@ -491,7 +491,12 @@ function evalState(s,p){
   v += pl.hand.reduce((a,b)=>a+(bookOk(s,p,b)?W.bookOk:W.book),0);
   D.TYPES.forEach(t=>{ if(pl.emTok[t]===undefined && pl.emer.some(co=>CARD[co.id].type===t) && s.objSlots[t].stack.length) v+=W.emObj; });
   v += woaList(pl).length*W.woa;
-  if(pl.rector) v+=W.rector;
+  if(pl.rector){ v+=W.rector;
+    // pouvoir permanent du Recteur : sa valeur dépend des tours restants
+    const left=Math.max(1,11.5-s.turnNo/s.players.length), unit=(W.coin+W.infl)/2;
+    const perTurn={'1a':0.8,'1b':1.3,'2a':0.7,'2b':0.5,'3a':0.7,'3b':0,'4a':0.8,'4b':1.3}[pl.rector.tile]||0;
+    v+=(W.rpow===undefined?1:W.rpow)*perTurn*left*unit + (pl.rector.tile==='3b'?3:0);
+  }
   // progression vers le Recteur : influence épargnée si un Professeur peut y prétendre
   if(!pl.rector && pl.profs.some(co=>s.rectSlots[CARD[co.id].type])) v+=Math.min(pl.infl,8)*(W.rprog||0);
   // progression vers l'Émérite : pièces épargnées si un Professeur peut être promu
