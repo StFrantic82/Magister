@@ -324,6 +324,7 @@ function resolve(s,pd,o){
   case 'pair': {
     const ids=s.pairs[o.pair]; s.pairs[o.pair]=null;
     log(s,M('log_pair',pl.name,cn(ids[0]),cn(ids[1])));
+    pl.start=ids.slice();
     s.stack.push({k:'setupNext',p});
     s.stack.push({k:'setupPlace',p,ids});
     pushSeq(s,p,CARD[ids[1]].H); pushSeq(s,p,CARD[ids[0]].H);
@@ -527,7 +528,7 @@ function summary(s,src){
   return {t:Date.now(),src,n,cs:s.tracks.slice(),turns:s.turnNo,rounds:Math.round(s.turnNo/n*10)/10,start:s.start,
     rects:Object.assign({},s.rectSlotsInit||{}),objs:Object.fromEntries(Object.entries(s.objSlots).map(([k,o])=>[k,o.tile])),
     players:s.players.map((pl,k)=>{ const r=s.ranking.findIndex(x=>x.k===k);
-      return {seat:k,ai:pl.ai,vp:vp(s,k),rank:r+1,win:s.winners.includes(k),hires:pl.hires||[],hcost:pl.hireCost||[],
+      return {seat:k,ai:pl.ai,vp:vp(s,k),rank:r+1,win:s.winners.includes(k),start:pl.start||[],hires:pl.hires||[],hcost:pl.hireCost||[],
         fin:{s:pl.students.map(c=>c.id),p:pl.profs.map(c=>c.id),e:pl.emer.map(c=>c.id),r:pl.rector?pl.rector.card.id:null},
         rect:pl.rector?pl.rector.tile:null,books:pl.played.slice(),em:Object.assign({},pl.emTok),bol:pl.bologna,cst:pl.constTok.length,
         cities:pl.citiesK||[],j:journeys(pl),coins:pl.coins,infl:pl.infl,promos:pl.promos||{S:0,E:0,R:0}}; })};

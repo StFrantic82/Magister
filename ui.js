@@ -499,7 +499,7 @@ async function saveWeights(w,gen){
 }
 
 // =========== STATISTIQUES ===========
-let STATS=null, stFilter={src:'all',n:'all'}, stSort={}, STRESET=0;
+let STATS=null, stFilter={src:'all',n:'all'}, stSort={}, STRESET=0, stCard={lvl:'all',type:'all'};
 async function loadStats(){
   const box=$('#stats');
   if(!STATS){
@@ -583,13 +583,13 @@ function renderStats(){
     el('div',{style:'display:flex;height:26px;border-radius:6px;overflow:hidden;margin:6px 0 10px;gap:2px'},srcRows.map((r,i)=>el('div',{title:r[1]+' : '+Math.round(src[r[0]]/tot*100)+'%',style:'flex:'+src[r[0]]+';background:'+['#5a1414','#c99a2e','#1f6f8b','#2e7d32','#7b3f7f'][i]}))),
     el('div',{style:'display:flex;gap:18px;flex-wrap:wrap'},srcRows.map((r,i)=>el('span',{},el('span',{class:'tbadge',style:'background:'+['#5a1414','#c99a2e','#1f6f8b','#2e7d32','#7b3f7f'][i]}),r[1]+' : '+(src[r[0]]/winners.length).toFixed(2)+' '+t('ui_vp')+' ('+Math.round(src[r[0]]/tot*100)+'%)')))));
   // cartes
-  const cs={}; D.cards.filter(c=>c.id>16).forEach(c=>cs[c.id]={c,h:0,hw:0,p:0,e:0,r:0,cost:[]});
+  const cs={}; D.cards.forEach(c=>cs[c.id]={c,h:0,hw:0,p:0,e:0,r:0,cost:[]});
   games.forEach(g=>g.players.forEach(p=>{
-    new Set(p.hires).forEach(id=>{ if(cs[id]){ cs[id].h++; if(p.win) cs[id].hw++; } });
+    new Set([...(p.start||[]),...p.hires]).forEach(id=>{ if(cs[id]){ cs[id].h++; if(p.win) cs[id].hw++; } });
     (p.hcost||[]).forEach((c,i)=>{ const id=p.hires[i]; if(cs[id]) cs[id].cost.push(c); });
     p.fin.p.forEach(id=>{ if(cs[id]) cs[id].p++; }); p.fin.e.forEach(id=>{ if(cs[id]) cs[id].e++; }); if(p.fin.r&&cs[p.fin.r]) cs[p.fin.r].r++;
   }));
-  const crow=Object.values(cs);
+  const crowAll=Object.values(cs); const crow=crowAll.filter(r=>r.c.id>16);
   const lv=[1,2,3].map(l=>{ const rs=crow.filter(r=>r.c.lvl===l); const h=rs.reduce((a,r)=>a+r.h,0), hw=rs.reduce((a,r)=>a+r.hw,0), cost=[].concat(...rs.map(r=>r.cost)); return {l,h,hw,cost,per:h/N}; });
   box.appendChild(el('div',{class:'pcard'},el('h3',{},t('st_levels')),
     sortable([{h:t('st_level'),f:r=>r.l,r:r=>el('span',{},icon('lv_'+r.l,22),' '+t('L_'+r.l))},
@@ -598,16 +598,20 @@ function renderStats(){
       {h:t('st_paid5'),num:1,f:r=>r.cost.length?r.cost.filter(c=>c>=5).length/r.cost.length:-1,r:r=>el('span',{},pct(r.cost.filter(c=>c>=5).length,r.cost.length))},
       {h:t('st_hiredWin'),num:1,f:r=>r.h?r.hw/r.h:-1,r:r=>el('span',{},pct(r.hw,r.h))}],lv,'levels')));
   const thumb=id=>{ const im=el('img',{class:'th',src:'cards/'+id+'.webp'}); im.onclick=()=>zoomCard(id); return im; };
-  box.appendChild(el('div',{class:'pcard'},el('h3',{},t('st_cards')),el('div',{class:'muted',style:'margin-bottom:6px'},t('st_note')),
+  const cfil=crowAll.filter(r=>(stCard.lvl==='all'||r.c.lvl===+stCard.lvl)&&(stCard.type==='all'||r.c.type===stCard.type));
+  const cbar=el('div',{class:'row-f',style:'margin-bottom:8px;gap:12px'},
+    el('div',{class:'tog'},[['all',t('st_any')],['3',t('L_3')],['2',t('L_2')],['1',t('L_1')],['0',t('L_0')]].map(([v,l])=>el('button',{class:stCard.lvl===v?'on':'',onclick:()=>{stCard.lvl=v;renderStats();}},v==='all'||v==='0'?l:el('span',{},icon('lv_'+v,16),' '+l)))),
+    el('div',{class:'tog'},[['all',t('st_any')],['A',t('T_A')],['M',t('T_M')],['N',t('T_N')],['R',t('T_R')]].map(([v,l])=>el('button',{class:stCard.type===v?'on':'',onclick:()=>{stCard.type=v;renderStats();}},v==='all'?l:el('span',{},icon('t_'+v,16),' '+l)))));
+  box.appendChild(el('div',{class:'pcard'},el('h3',{},t('st_cards')),el('div',{class:'muted',style:'margin-bottom:6px'},t('st_note')),cbar,
     sortable([
       {h:t('st_card'),f:r=>r.c.name,r:r=>el('span',{},thumb(r.c.id),r.c.name)},
-      {h:t('st_type'),f:r=>r.c.type,r:r=>el('span',{},icon('t_'+r.c.type,20),' ',icon('lv_'+r.c.lvl,18))},
+      {h:t('st_type'),f:r=>r.c.type+r.c.lvl,r:r=>el('span',{},icon('t_'+r.c.type,20),' ',r.c.lvl?icon('lv_'+r.c.lvl,18):el('span',{class:'muted',style:'font-size:12px'},t('L_0')))},
       {h:t('st_hired'),num:1,f:r=>r.h/N,r:r=>barCell(r.h/N,1,pct(r.h,N))},
       {h:t('st_cost'),num:1,f:r=>r.cost.length?avg(r.cost):-1,r:r=>el('span',{},r.cost.length?avg(r.cost).toFixed(1):'—')},
       {h:t('st_hiredWin'),num:1,f:r=>r.h?r.hw/r.h:-1,r:r=>el('span',{},pct(r.hw,r.h))},
       {h:t('st_prof'),num:1,f:r=>r.p/N,r:r=>el('span',{},pct(r.p,N))},
       {h:t('st_emer'),num:1,f:r=>r.e/N,r:r=>el('span',{},pct(r.e,N))},
-      {h:t('st_rect'),num:1,f:r=>r.r,r:r=>el('span',{},String(r.r))}],crow,'cards')));
+      {h:t('st_rect'),num:1,f:r=>r.r,r:r=>el('span',{},String(r.r))}],cfil,'cards')));
   // Livres + Recteurs
   const bs={}; D.books.forEach(b=>bs[b.id]={id:b.id,n:0,w:0});
   games.forEach(g=>g.players.forEach(p=>p.books.forEach(b=>{ bs[b].n++; if(p.win) bs[b].w++; })));
