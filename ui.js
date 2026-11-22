@@ -528,7 +528,7 @@ function sortable(cols,rows,key){
   const tb=el('table',{class:'stbl'});
   tb.appendChild(el('tr',{},cols.map((c,i)=>el('th',{class:c.num?'num':'',onclick:()=>{ stSort[key]={i,d:sc.i===i?-sc.d:-1}; renderStats(); }},c.h+(sc.i===i?(sc.d<0?' ▾':' ▴'):'')))));
   sorted.forEach(r=>tb.appendChild(el('tr',{},cols.map(c=>el('td',{class:c.num?'num':''},c.r?c.r(r):String(c.f(r)))))));
-  return el('div',{class:'scroll'},tb);
+  return el('div',{class:['rects','objs','seats','levels'].includes(key)?'':'scroll'},tb);
 }
 const barCell=(v,max,label)=>el('span',{},label,el('span',{class:'bar',style:'width:'+Math.round((max?v/max:0)*70)+'px'}));
 function resetStats(){
