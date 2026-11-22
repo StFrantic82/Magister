@@ -181,6 +181,12 @@ button.small{padding:3px 10px;font-size:14px}
 #decide .opts button.cbtn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px}
 .cthumbs{display:flex;gap:4px}.cthumbs img{width:92px;border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.5)}
 @media(max-width:700px){.cthumbs img{width:64px}}
+.bk{position:relative;outline:none}
+.bkmenu{display:none;position:fixed;z-index:40;width:220px;background:#fff6df;border:1px solid var(--goldB);border-radius:8px;padding:8px;box-shadow:0 8px 20px rgba(0,0,0,.45);flex-direction:column;gap:6px;margin-top:4px}
+.bk:hover .bkmenu,.bk.open .bkmenu,.bk:focus-within .bkmenu{display:flex}
+.bkmenu::before{content:'';position:absolute;left:-12px;top:0;width:12px;height:100%}
+.bkmenu .bkt{font-size:13px;line-height:1.3}
+.bkmenu button{width:100%;text-align:left}
 /* ---------- Jeu ---------- */
 #game{padding:8px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:8px;max-width:1700px;margin:0 auto 150px}
 @media(max-width:1100px){#game{grid-template-columns:1fr}}

@@ -138,6 +138,18 @@ async function undo(){
   prev.ver=(S.ver||0)+1; S=prev; myLastVer=-1; render();
   try{ await db.doc('tables/'+table.code).update({state:JSON.stringify(prev),rev:prev.ver}); }catch(e){ alertBox(t('ui_writeErr',e.code||e.message)); }
 }
+function hasRect2a(pl){ return pl.rector&&pl.rector.tile==='2a'; }
+async function bookAct(type,hk){
+  if(busy||!S) return;
+  const p=S.pending&&S.pending.p; if(!isMine(p)) return;
+  hist.push(JSON.stringify(S)); if(hist.length>40) hist.shift();
+  if(mode==='local'){ try{ E.bookAction(S,p,type,hk); }catch(e){ alertBox(t('ui_engineErr',e.message)); } afterChange(); return; }
+  busy=true; const next=E.clone(S);
+  try{ E.bookAction(next,p,type,hk); }catch(e){ busy=false; alertBox(t('ui_engineErr',e.message)); return; }
+  S=next; myLastVer=next.ver; render();
+  try{ await db.doc('tables/'+table.code).update({state:JSON.stringify(next),rev:next.ver,status:next.over?'over':'play'}); }catch(e){ alertBox(t('ui_writeErr',e.code||e.message)); }
+  busy=false; renderDecide(); scheduleAI();
+}
 // =========== RENDU ===========
 function cardImg(id){
   const im=el('img',{class:'card',src:'cards/'+id+'.webp',alt:CARD[id].name,'data-cid':id,loading:'lazy'});
@@ -258,7 +270,17 @@ function renderTabs(sel){
   u.appendChild(rowEl(t('ui_rEmer'),pl.emer)); u.appendChild(rowEl(t('ui_rProf'),pl.profs)); u.appendChild(rowEl(t('ui_rStu'),pl.students));
   const showHand = mode==='local' ? !pl.ai : isMine(tab);
   const h=el('div',{class:'hand'});
-  if(showHand) pl.hand.forEach(b=>{ const ok=E.bookOk(S,tab,b); const im=el('img',{src:'book/'+b+'.webp',class:ok?'ok':'',title:t('B_'+b)}); im.onclick=()=>zoomImg('book/'+b+'.webp',t('ui_book'),t('B_'+b)+(ok?t('ui_bookOk'):'')+t('ui_bookDisc',tm(E.effsTxt(BOOK[b].disc)))); h.appendChild(im); });
+  const canAct=isMine(tab)&&!busy&&E.canBookAct(S,tab);
+  if(showHand) pl.hand.forEach((b,hk)=>{ const ok=E.bookOk(S,tab,b);
+    const im=el('img',{src:'book/'+b+'.webp',class:(ok?'ok':'')+(canAct?' nopv':''),title:canAct?null:t('B_'+b)});
+    if(!canAct){ im.onclick=()=>zoomImg('book/'+b+'.webp',t('ui_book'),t('B_'+b)+(ok?t('ui_bookOk'):'')+t('ui_bookDisc',tm(E.effsTxt(BOOK[b].disc)))); h.appendChild(im); return; }
+    const disc=hasRect2a(pl)?[{c:1},{i:1},{t:1}]:BOOK[b].disc;
+    const menu=el('div',{class:'bkmenu'},el('div',{class:'bkt'},t('B_'+b)),
+      ok?el('button',{class:'primary small',onclick:ev=>{ev.stopPropagation();bookAct('play',hk);}},t('ui_bkPlay')):el('div',{class:'muted',style:'font-size:13px'},t('ui_bkNo')),
+      el('button',{class:'small',onclick:ev=>{ev.stopPropagation();bookAct('disc',hk);}},t('ui_bkDisc',tm(E.effsTxt(disc)))));
+    const w=el('div',{class:'bk',tabindex:'0'},im,menu);
+    const place=()=>{ const r=w.getBoundingClientRect(); let x=r.right+6, y=r.top; if(x+226>innerWidth) x=r.left-232; y=Math.max(8,Math.min(innerHeight-200,y)); menu.style.left=x+'px'; menu.style.top=y+'px'; };
+    w.addEventListener('mouseenter',place); w.addEventListener('click',()=>{ place(); w.classList.toggle('open'); }); h.appendChild(w); });
   else pl.hand.forEach(()=>h.appendChild(el('img',{src:'book/back.webp'})));
   if(!pl.hand.length) h.appendChild(el('span',{class:'muted'},'—'));
   u.appendChild(el('div',{},el('b',{},t('ui_books')+' '),el('span',{class:'muted'},t('ui_booksSub',pl.hand.length)),h));
@@ -284,7 +306,8 @@ function renderDecide(){
   const opts=el('div',{class:'opts'});
   if(pd.kind==='move'){ d.appendChild(el('div',{class:'hint'},'👉 '+t('ui_clickTrack'))); const tb=document.querySelector('.cell.target'); if(tb) tb.scrollIntoView({block:'nearest',behavior:'smooth'}); return; }
   const THUMB={pair:1,place:1,lisboa:1,take:1,fes:1,meknes:1,elim:1,sale:1,freePromo:1,reorg:1};
-  pd.opts.forEach((o,k)=>{ if(filter&&!filter.includes(k)) return;
+  const hideBooks=!(pd.kind==='end'&&S.players[pd.p].hand.length>3);
+  pd.opts.forEach((o,k)=>{ if(filter&&!filter.includes(k)) return; if(hideBooks&&(o.play!==undefined||o.disc!==undefined)&&(pd.kind==='turn'||pd.kind==='end')) return;
     const b=el('button',{class:(o.endTurn?'primary':'')+(THUMB[pd.kind]&&o.cards?' cbtn':''),onclick:()=>act(k)});
     if(THUMB[pd.kind]&&o.cards){ const row=el('div',{class:'cthumbs'}); o.cards.forEach(id=>row.appendChild(el('img',{src:'cards/'+id+'.webp',alt:CARD[id].name}))); b.appendChild(row); }
     b.appendChild(el('span',{},tm(o.label))); opts.appendChild(b); });
@@ -529,7 +552,7 @@ function sortable(cols,rows,key){
   const tb=el('table',{class:'stbl'});
   tb.appendChild(el('tr',{},cols.map((c,i)=>el('th',{class:c.num?'num':'',onclick:()=>{ stSort[key]={i,d:sc.i===i?-sc.d:-1}; renderStats(); }},c.h+(sc.i===i?(sc.d<0?' ▾':' ▴'):'')))));
   sorted.forEach(r=>tb.appendChild(el('tr',{},cols.map(c=>el('td',{class:c.num?'num':''},c.r?c.r(r):String(c.f(r)))))));
-  return el('div',{class:['rects','objs','seats','levels'].includes(key)?'':'scroll'},tb);
+  return el('div',{class:['rects','objs','seats','levels','letters','travel'].includes(key)?'':'scroll'},tb);
 }
 const barCell=(v,max,label)=>el('span',{},label,el('span',{class:'bar',style:'width:'+Math.round((max?v/max:0)*70)+'px'}));
 function resetStats(){
@@ -613,6 +636,90 @@ function renderStats(){
       {h:t('st_prof'),num:1,f:r=>r.p/N,r:r=>el('span',{},pct(r.p,N))},
       {h:t('st_emer'),num:1,f:r=>r.e/N,r:r=>el('span',{},pct(r.e,N))},
       {h:t('st_rect'),num:1,f:r=>r.r,r:r=>el('span',{},String(r.r))}],cfil,'cards')));
+  // ===== analyses avancées (parties enregistrées depuis la mise à jour) =====
+  const adv=games.filter(g=>g.vpr);
+  if(adv.length){
+    const AP=[]; adv.forEach(g=>g.players.forEach(p=>AP.push({g,p})));
+    const W=AP.filter(x=>x.p.win), L=AP.filter(x=>!x.p.win);
+    const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0, f1=v=>v.toFixed(1);
+    box.appendChild(el('div',{class:'orn'},el('span',{},t('sx_title'))));
+    box.appendChild(el('div',{class:'muted',style:'color:#e9d7b0;text-align:center;margin-top:-8px'},t('sx_note',adv.length)));
+    // --- Rythme : courbe des PV par tour
+    const maxR=Math.max(...adv.map(g=>g.vpr.length));
+    const curve=k=>[...Array(maxR)].map((_,r)=>{ const v=[]; adv.forEach(g=>{ if(g.vpr[r]) g.players.forEach((p,i)=>{ if((k==='w')===p.win) v.push(g.vpr[r][i]); }); }); return v.length>=3?mean(v):null; });
+    const cw=curve('w'), cl=curve('l');
+    const Wd=560,Hd=200,px=r=>40+r*(Wd-60)/Math.max(1,maxR-1),py=v=>Hd-25-v*(Hd-45)/9;
+    const path=c=>c.map((v,r)=>v===null?null:(px(r)+','+py(v))).filter(Boolean).join(' ');
+    const svg=`<svg viewBox="0 0 ${Wd} ${Hd}" style="width:100%;max-width:640px">${[0,2,4,6,8].map(v=>`<line x1="40" x2="${Wd-20}" y1="${py(v)}" y2="${py(v)}" stroke="#d8c393" stroke-width="1"/><text x="30" y="${py(v)+4}" font-size="11" text-anchor="end" fill="#5b3a1a">${v}</text>`).join('')}
+      <line x1="40" x2="${Wd-20}" y1="${py(8)}" y2="${py(8)}" stroke="#5a1414" stroke-dasharray="4 3" stroke-width="1.5"/>
+      ${[...Array(maxR)].map((_,r)=>`<text x="${px(r)}" y="${Hd-8}" font-size="11" text-anchor="middle" fill="#5b3a1a">${r+1}</text>`).join('')}
+      <polyline points="${path(cw)}" fill="none" stroke="#5a1414" stroke-width="2.5"/><polyline points="${path(cl)}" fill="none" stroke="#c99a2e" stroke-width="2.5"/>
+      ${cw.map((v,r)=>v===null?'':`<circle cx="${px(r)}" cy="${py(v)}" r="4" fill="#5a1414" stroke="#f3e7cc" stroke-width="2"><title>${t('sx_winner')} — ${t('ui_round',r+1)} : ${f1(v)} ${t('ui_vp')}</title></circle>`).join('')}
+      ${cl.map((v,r)=>v===null?'':`<circle cx="${px(r)}" cy="${py(v)}" r="4" fill="#c99a2e" stroke="#f3e7cc" stroke-width="2"><title>${t('sx_others')} — ${t('ui_round',r+1)} : ${f1(v)} ${t('ui_vp')}</title></circle>`).join('')}</svg>`;
+    const curveBox=el('div',{}); curveBox.innerHTML=svg;
+    const legend=el('div',{style:'display:flex;gap:16px;font-size:14px'},el('span',{},el('span',{class:'tbadge',style:'background:#5a1414'}),t('sx_winner')),el('span',{},el('span',{class:'tbadge',style:'background:#c99a2e'}),t('sx_others')));
+    const ms=[['S','sx_firstProf'],['E','sx_firstEmer'],['R','sx_firstRect'],['B','sx_firstBook']];
+    const msRow=(set)=>ms.map(([k])=>{ const v=set.map(x=>x.p.first&&x.p.first[k]).filter(x=>x!==undefined&&x!==null); return v.length?f1(mean(v)):'—'; });
+    const margins=adv.map(g=>{ const v=g.players.map(p=>p.vp).sort((a,b)=>b-a); return v[0]-(v[1]||0); });
+    box.appendChild(el('div',{class:'two'},
+      el('div',{class:'pcard'},el('h3',{},t('sx_curve')),legend,curveBox),
+      el('div',{class:'pcard'},el('h3',{},t('sx_milestones')),
+        el('table',{class:'stbl'},el('tr',{},el('th',{},''),el('th',{class:'num'},t('sx_winner')),el('th',{class:'num'},t('sx_others'))),
+          ms.map(([k,l],i)=>el('tr',{},el('td',{},t(l)),el('td',{class:'num'},msRow(W)[i]),el('td',{class:'num'},msRow(L)[i])))),
+        el('h3',{style:'margin-top:14px'},t('sx_margin')),
+        el('div',{class:'kpis',style:'margin-top:0'},[['0',m=>m===0],['1',m=>m===1],['2',m=>m===2],['3+',m=>m>=3]].map(([l,f])=>el('div',{class:'kpi'},el('div',{class:'v'},pct(margins.filter(f).length,margins.length)),el('div',{class:'l'},t('sx_marginOf',l))))))));
+    // --- Stratégies
+    const major=p=>{ const c={A:0,M:0,N:0,R:0}; [...p.fin.s,...p.fin.p,...p.fin.e,...(p.fin.r?[p.fin.r]:[])].forEach(id=>c[CARD[id].type]++); return Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0]; };
+    const byT={A:[0,0],M:[0,0],N:[0,0],R:[0,0]}; AP.forEach(x=>{ const ty=major(x.p); byT[ty][0]++; if(x.p.win) byT[ty][1]++; });
+    const path2=p=>{ const o=Object.keys(p.em).length, b=p.books.length; return [b?t('sx_pBooks',b):null,o?t('sx_pObjs',o):null,p.rect?t('ui_vpRect'):null,(p.bol+p.cst)?t('sx_pCities',p.bol+p.cst):null].filter(Boolean).join(' · ')||'—'; };
+    const paths={}; W.forEach(x=>{ const k=path2(x.p); paths[k]=(paths[k]||0)+1; });
+    const topPaths=Object.entries(paths).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const actShare=set=>{ const a=set.reduce((s,x)=>s+(x.p.nAct||0),0), pr=set.reduce((s,x)=>s+(x.p.nPromo||0),0); return pct(a,a+pr); };
+    box.appendChild(el('div',{class:'two'},
+      el('div',{class:'pcard'},el('h3',{},t('sx_byType')),
+        el('table',{class:'stbl'},el('tr',{},el('th',{},t('st_type')),el('th',{class:'num'},t('sx_players')),el('th',{class:'num'},t('st_wins'))),
+          D.TYPES.map(ty=>el('tr',{},el('td',{},icon('t_'+ty,20),' '+t('T_'+ty)),el('td',{class:'num'},String(byT[ty][0])),el('td',{class:'num'},barCell(byT[ty][0]?byT[ty][1]/byT[ty][0]:0,1,pct(byT[ty][1],byT[ty][0])))))),
+        el('h3',{style:'margin-top:14px'},t('sx_actShare')),
+        el('div',{class:'kpis',style:'margin-top:0'},el('div',{class:'kpi'},el('div',{class:'v'},actShare(W)),el('div',{class:'l'},t('sx_winner'))),el('div',{class:'kpi'},el('div',{class:'v'},actShare(L)),el('div',{class:'l'},t('sx_others'))))),
+      el('div',{class:'pcard'},el('h3',{},t('sx_paths')),
+        el('table',{class:'stbl'},el('tr',{},el('th',{},t('sx_path')),el('th',{class:'num'},t('st_wins'))),
+          topPaths.map(([k,n])=>el('tr',{},el('td',{},k),el('td',{class:'num'},barCell(n/W.length,1,pct(n,W.length)))))))));
+    // --- Économie
+    const left=set=>f1(mean(set.map(x=>(x.p.coins||0)+(x.p.infl||0))));
+    const sl=[0,0,0,0,0,0], free=[0]; AP.forEach(x=>(x.p.slots||[]).forEach(v=>{ if(v<0) free[0]++; else sl[v]++; }));
+    const slTot=sl.reduce((a,b)=>a+b,0)+free[0];
+    const lt={}; D.letters.forEach(L0=>lt[L0.id]={id:L0.id,n:0,w:0}); AP.forEach(x=>(x.p.letters||[]).forEach(id=>{ if(lt[id]){ lt[id].n++; if(x.p.win) lt[id].w++; } }));
+    box.appendChild(el('div',{class:'two'},
+      el('div',{class:'pcard'},el('h3',{},t('sx_slots')),
+        el('div',{style:'display:flex;gap:8px;align-items:flex-end;height:150px;padding-top:8px'},[...sl.map((n,i)=>[n,String(D.ROWCOST[i])]),[free[0],t('sx_free')]].map(([n,l])=>el('div',{style:'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%'},
+          el('div',{style:'font-size:12px'},pct(n,slTot)),el('div',{style:'width:100%;max-width:40px;border-radius:4px 4px 0 0;background:var(--wine2);height:'+Math.max(2,Math.round((slTot?n/slTot:0)*300))+'px;max-height:110px'}),
+          el('div',{style:'margin-top:4px'},l===t('sx_free')?el('span',{style:'font-size:12px'},l):el('span',{class:'seal'+(l==='0'?' free':''),style:'width:22px;height:22px;font-size:12px'},l))))),
+        el('div',{class:'muted',style:'margin-top:6px'},t('sx_slotsNote')),
+        el('h3',{style:'margin-top:14px'},t('sx_left')),
+        el('div',{class:'kpis',style:'margin-top:0'},el('div',{class:'kpi'},el('div',{class:'v'},left(W)),el('div',{class:'l'},t('sx_winner'))),el('div',{class:'kpi'},el('div',{class:'v'},left(L)),el('div',{class:'l'},t('sx_others'))))),
+      el('div',{class:'pcard'},el('h3',{},t('sx_letters')),
+        sortable([{h:t('sx_letter'),f:r=>r.id,r:r=>{ const L0=D.letters.find(x=>x.id===r.id); return el('span',{},el('img',{class:'th',src:'let/'+r.id+'.webp',style:'width:26px'}),L0.woa?t('W_'+L0.woa):tm(E.effsTxt(L0.g))); }},
+          {h:t('sx_taken'),num:1,f:r=>r.n},{h:t('st_playedWin'),num:1,f:r=>r.n?r.w/r.n:-1,r:r=>el('span',{},pct(r.w,r.n))}],Object.values(lt),'letters'))));
+    // --- Places par nombre de joueurs, voyages, pioche
+    const seatTab=el('table',{class:'stbl'},el('tr',{},el('th',{},t('st_players')),...[1,2,3,4].map(i=>el('th',{class:'num'},t('st_seat')+' '+i)),el('th',{class:'num'},t('st_games'))));
+    [2,3,4].forEach(n=>{ const gs=adv.filter(g=>g.n===n); if(!gs.length) return; seatTab.appendChild(el('tr',{},el('td',{},String(n)),...[0,1,2,3].map(i=>el('td',{class:'num'},i<n?pct(gs.filter(g=>g.players[i]&&g.players[i].win).length,gs.length):'')),el('td',{class:'num'},String(gs.length)))); });
+    const tv={}; adv.forEach(g=>g.cs.forEach((c,i)=>g.players.forEach(p=>{ if(!p.trav) return; (tv[c]=tv[c]||{c,pos:[],done:0,n:0}); tv[c].pos.push(p.trav[i]); tv[c].n++; if(p.trav[i]>=12) tv[c].done++; })));
+    const dk=[2,3,4].map(n=>{ const gs=adv.filter(g=>g.n===n); return [n,gs.filter(g=>g.deckOut).length,gs.length]; }).filter(x=>x[2]);
+    box.appendChild(el('div',{class:'two'},
+      el('div',{class:'pcard'},el('h3',{},t('sx_seatsByN')),seatTab,
+        el('h3',{style:'margin-top:14px'},t('sx_deckOut')),
+        el('div',{class:'kpis',style:'margin-top:0'},dk.map(([n,d,tot])=>el('div',{class:'kpi'},el('div',{class:'v'},pct(d,tot)),el('div',{class:'l'},t('sx_nPlayers',n)))))),
+      el('div',{class:'pcard'},el('h3',{},t('sx_travel')),
+        sortable([{h:t('st_country'),f:r=>t('C_'+r.c),r:r=>el('span',{},el('img',{class:'th',src:'tok/country_'+COUNTRY_IMG[r.c]+'.webp',style:'width:22px'}),t('C_'+r.c))},
+          {h:t('sx_avgPos'),num:1,f:r=>mean(r.pos),r:r=>barCell(mean(r.pos)/12,1,f1(mean(r.pos))+' / 12')},
+          {h:t('sx_done'),num:1,f:r=>r.done/r.n,r:r=>el('span',{},pct(r.done,r.n))}],Object.values(tv),'travel'))));
+    // --- Humains contre IA
+    const srcRows=[['human',t('st_human')],['sim',t('st_sim')],['train',t('st_train')]].map(([k,l])=>{ const gs=adv.filter(g=>g.src===k); if(!gs.length) return null;
+      const ap=[]; gs.forEach(g=>g.players.forEach(p=>ap.push({g,p}))); const w=ap.filter(x=>x.p.win);
+      return el('tr',{},el('td',{},l),el('td',{class:'num'},String(gs.length)),el('td',{class:'num'},f1(mean(gs.map(g=>g.rounds)))),el('td',{class:'num'},f1(mean(w.map(x=>x.p.vp)))),el('td',{class:'num'},actShare(ap)),el('td',{class:'num'},f1(mean(ap.map(x=>(x.p.rect?1:0))))),el('td',{class:'num'},left(ap))); }).filter(Boolean);
+    box.appendChild(el('div',{class:'pcard'},el('h3',{},t('sx_humanAI')),
+      el('table',{class:'stbl'},el('tr',{},el('th',{},t('st_source')),el('th',{class:'num'},t('st_games')),el('th',{class:'num'},t('st_rounds')),el('th',{class:'num'},t('st_winVP')),el('th',{class:'num'},t('sx_actShare')),el('th',{class:'num'},t('sx_rectPP')),el('th',{class:'num'},t('sx_left'))),srcRows)));
+  }
   // Livres + Recteurs
   const bs={}; D.books.forEach(b=>bs[b.id]={id:b.id,n:0,w:0});
   games.forEach(g=>g.players.forEach(p=>p.books.forEach(b=>{ bs[b].n++; if(p.win) bs[b].w++; })));
@@ -751,7 +858,7 @@ function simLive(){
   const OK=/(^|\/)(cards|book|rect|obj|city|let)\//;
   let cur=null;
   function srcOf(t){
-    if(!t||t.closest('#zoom')||t.closest('#hoverPrev')) return null;
+    if(!t||t.closest('#zoom')||t.closest('#hoverPrev')||t.classList&&t.classList.contains('nopv')) return null;
     if(t.tagName==='IMG'){ const s=t.getAttribute('src')||''; return OK.test(s)?s:null; }
     const c=t.closest('.cell.city'); if(c){ const m=(c.style.backgroundImage||'').match(/url\("?([^")]+)"?\)/); return m?m[1]:null; }
     return null;

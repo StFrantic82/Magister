@@ -310,6 +310,14 @@ function step(s,t){
     log(s,M('log_thess',pn(s,p)));
     for(let k=pl.emer.length-1;k>=0;k--) pushSeq(s,p,CARD[pl.emer[k].id].A);
     return;
+  case 'restore': {
+    const pd=t.pd;
+    if(pd.kind==='turn'){ if(s.phase==='main') ask(s,p,'turn',M('q_turn',pn(s,p)),mainOpts(s,p),{k:'turn',p}); return; }
+    if(pd.kind==='end'){ endPrompt(s); return; }
+    // décision en cours : on retire les options de Livre devenues invalides
+    pd.opts=pd.opts.filter(o=>(o.play===undefined&&o.disc===undefined)||P(s,p).hand[o.play!==undefined?o.play:o.disc]===o.book);
+    if(!pd.opts.length){ return; }
+    s.pending=pd; return; }
   case 'reMain':
     if(s.phase==='main') ask(s,p,'turn',M('q_turn',pn(s,p)),mainOpts(s,p),{k:'turn',p});
     return;
@@ -337,7 +345,7 @@ function resolve(s,pd,o){
   case 'ci': if(o.c) pl.coins+=o.c; else pl.infl+=o.i; return;
   case 'move': moveStep(s,p,o.tr,t.n-1); return;
   case 'letter': {
-    s.letters.splice(s.letters.indexOf(o.letter),1);
+    s.letters.splice(s.letters.indexOf(o.letter),1); (pl.lettersK=pl.lettersK||[]).push(o.letter);
     const L=D.letters.find(x=>x.id===o.letter);
     if(L.woa){ const tgt=hiredTarget(s,p); if(tgt){ tgt.letters.push(L.woa); log(s,M('log_letterWoa',pl.name,WO(L.woa),cn(tgt.id))); } }
     else { log(s,M('log_letter',pl.name,effsTxt(L.g))); pushSeq(s,p,L.g); }
@@ -349,8 +357,8 @@ function resolve(s,pd,o){
   case 'take': s.stack.push({k:'hire',p,slot:o.slot,free:true}); return;
   case 'elim': { if(o.pass){ abortCtx(s,t.ctx); return; } const [co]=pl.students.splice(o.idx,1); log(s,M('log_elim',pl.name,cn(co.id))); return; }
   case 'choice':
-    if(o.act) s.stack.push({k:'activate',p,type:o.act});
-    else if(o.promo) s.stack.push({k:'promo',p});
+    if(o.act){ s.stack.push({k:'activate',p,type:o.act}); pl.nAct=(pl.nAct||0)+1; }
+    else if(o.promo){ s.stack.push({k:'promo',p}); pl.nPromo=(pl.nPromo||0)+1; }
     return;
   case 'virt': pl.virt={t:o.t,l:o.l}; log(s,M('log_virt',pl.name,TY(o.t),LV(o.l))); return;
   case 'pickType': s.stack.push({k:'activate',p,type:o.type}); return;
@@ -406,7 +414,7 @@ function promoOptions(s,p){
   return out;
 }
 function doPromo(s,p,to,idx,free){
-  const pl=P(s,p); pl.promos=pl.promos||{S:0,E:0,R:0}; pl.promos[to]++; const red=hasRect(pl,'4a')?2:0;
+  const pl=P(s,p); pl.first=pl.first||{}; const rd=Math.ceil(s.turnNo/s.players.length); if(pl.first[to]===undefined) pl.first[to]=rd; pl.promos=pl.promos||{S:0,E:0,R:0}; pl.promos[to]++; const red=hasRect(pl,'4a')?2:0;
   if(to==='S'){ const co=pl.students[idx]; if(!co) return; if(!free) pay(pl,Math.max(0,3-red),idx+1); pl.students.splice(idx,1); pl.profs.push(co); log(s,M(free?'log_promoSPfree':'log_promoSP',pl.name,cn(co.id))); return; }
   if(to==='E'){ const co=pl.profs[idx]; if(!co) return; if(!free) pay(pl,Math.max(0,6-red),idx+1); pl.profs.splice(idx,1); pl.emer.push(co); log(s,M(free?'log_promoPEfree':'log_promoPE',pl.name,cn(co.id))); return; }
   if(to==='R'){ const co=pl.profs[idx]; const ty=CARD[co.id].type; const tile=s.rectSlots[ty]; if(!tile) return;
@@ -424,7 +432,7 @@ function hire(s,p,slot,free){
   co.uid=(s.uidc=(s.uidc||0)+1);
   pl.students.push(co);
   s.turn.hired=co.uid;
-  (pl.hires=pl.hires||[]).push(co.id); (pl.hireCost=pl.hireCost||[]).push(cost);
+  (pl.hires=pl.hires||[]).push(co.id); (pl.hireCost=pl.hireCost||[]).push(cost); (pl.hireSlot=pl.hireSlot||[]).push(free?-1:slot);
   const c=CARD[co.id];
   log(s,M(cost?'log_hireCost':'log_hire',pl.name,c.name,TY(c.type),LV(c.lvl),cost));
   if(hasRect(pl,'1a') && cardWoa(co).length){ pl.coins++; pl.infl++; }
@@ -440,6 +448,25 @@ function refill(s){
   s.row=[...Array(6-cards.length-add.length).fill(null), ...add.reverse(), ...cards];
 }
 
+
+// Livre joué ou défaussé à n'importe quel moment de son tour (hors décision en cours, qui est conservée)
+function canBookAct(s,p){ return !s.over && s.pending && s.pending.p===p && s.turn && s.turn.p===p && (s.phase==='main'||s.phase==='end'); }
+function bookAction(s,p,type,hk){
+  if(!canBookAct(s,p)) throw new Error('not your turn');
+  const pl=P(s,p), b=pl.hand[hk]; if(b===undefined) throw new Error('no book');
+  const saved=s.pending;
+  if(type==='play'){
+    if(!bookOk(s,p,b)) throw new Error('condition not met');
+    pl.hand.splice(hk,1); pl.played.push(b); pl.first=pl.first||{}; if(pl.first.B===undefined) pl.first.B=Math.ceil(s.turnNo/s.players.length);
+    log(s,M('log_playBook',pl.name,M('B_'+b)));
+  } else {
+    pl.hand.splice(hk,1); s.bookDisc.push(b); log(s,M('log_discard',pl.name,effsTxt(discEff(s,p,b))));
+  }
+  s.pending=null;
+  s.stack.push({k:'restore',p,pd:saved});
+  if(type!=='play') pushSeq(s,p,discEff(s,p,b));
+  run(s); s.ver=(s.ver||0)+1; return s;
+}
 // ---------- tours ----------
 function startTurn(s,p){
   s.phase='main'; s.turn={p, hired:null}; s.turnNo++;
@@ -466,7 +493,7 @@ function endPrompt(s){
 function turnAction(s,p,o,kind){
   const pl=P(s,p);
   if(o.hire!==undefined){ s.stack.push({k:'hire',p,slot:o.hire,free:false}); return; }
-  if(o.play!==undefined){ pl.hand.splice(o.play,1); pl.played.push(o.book); log(s,M('log_playBook',pl.name,M('B_'+o.book))); if(kind==='turn') s.stack.push({k:'reMain',p}); return; }
+  if(o.play!==undefined){ pl.hand.splice(o.play,1); pl.played.push(o.book); pl.first=pl.first||{}; if(pl.first.B===undefined) pl.first.B=Math.ceil(s.turnNo/s.players.length); log(s,M('log_playBook',pl.name,M('B_'+o.book))); if(kind==='turn') s.stack.push({k:'reMain',p}); return; }
   if(o.disc!==undefined){ pl.hand.splice(o.disc,1); s.bookDisc.push(o.book); log(s,M('log_discard',pl.name,effsTxt(discEff(s,p,o.book)))); if(kind==='turn') s.stack.push({k:'reMain',p}); pushSeq(s,p,discEff(s,p,o.book)); return; }
   if(o.endTurn) endTurn(s);
 }
@@ -475,6 +502,7 @@ function endTurn(s){
   autoClaim(s,p);
   if(!s.endTriggered && (vp(s,p)>=8 || s.deckOut)){ s.endTriggered=true; log(s,vp(s,p)>=8?M('log_endVP',pn(s,p),vp(s,p)):M('log_endDeck')); }
   const nx=(p+1)%n;
+  if(nx===s.start){ (s.vpRounds=s.vpRounds||[]).push(s.players.map((_,k)=>vp(s,k))); }
   if(s.endTriggered && nx===s.start){ finish(s); return; }
   startTurn(s,nx);
 }
@@ -501,7 +529,8 @@ function evalState(s,p){
   let v = myvp*W.vp + (W.race||0)*myvp*myvp;
   // potentiel de PV à court terme (course) : Livres jouables, objectifs Émérites à portée
   v += (W.near||0)*(pl.hand.filter(b=>bookOk(s,p,b)).length + D.TYPES.filter(t=>pl.emTok[t]===undefined && s.objSlots[t].stack.length && objOk(s,p,s.objSlots[t].tile)).length);
-  v += Math.min(pl.coins,14)*W.coin + Math.min(pl.infl,14)*W.infl;
+  const sat=(x,k)=>Math.min(x,k)+Math.max(0,x-k)*(W.over===undefined?1:W.over);
+  v += sat(Math.min(pl.coins,14),W.capC||8)*W.coin + sat(Math.min(pl.infl,14),W.capI||10)*W.infl;
   v += chars(pl).reduce((a,co)=>a+CARD[co.id].lvl*(W.lvl||0),0);
   v += pl.students.length*W.stu + pl.profs.reduce((a,co)=>a+W.prof+CARD[co.id].A.length*W.abil+CARD[co.id].trig.length*W.trig,0) + pl.emer.length*W.emer;
   v += pl.trav.reduce((a,x)=>a+x*W.trav+(x>=12?W.journey:0),0);
@@ -525,10 +554,10 @@ function evalState(s,p){
 }
 function summary(s,src){
   const n=s.players.length;
-  return {t:Date.now(),src,n,cs:s.tracks.slice(),turns:s.turnNo,rounds:Math.round(s.turnNo/n*10)/10,start:s.start,
+  return {t:Date.now(),src,n,cs:s.tracks.slice(),vpr:s.vpRounds||[],deckOut:!!s.deckOut,turns:s.turnNo,rounds:Math.round(s.turnNo/n*10)/10,start:s.start,
     rects:Object.assign({},s.rectSlotsInit||{}),objs:Object.fromEntries(Object.entries(s.objSlots).map(([k,o])=>[k,o.tile])),
     players:s.players.map((pl,k)=>{ const r=s.ranking.findIndex(x=>x.k===k);
-      return {seat:k,ai:pl.ai,vp:vp(s,k),rank:r+1,win:s.winners.includes(k),start:pl.start||[],hires:pl.hires||[],hcost:pl.hireCost||[],
+      return {seat:k,ai:pl.ai,vp:vp(s,k),rank:r+1,win:s.winners.includes(k),start:pl.start||[],first:pl.first||{},nAct:pl.nAct||0,nPromo:pl.nPromo||0,slots:pl.hireSlot||[],letters:pl.lettersK||[],trav:pl.trav.slice(),hires:pl.hires||[],hcost:pl.hireCost||[],
         fin:{s:pl.students.map(c=>c.id),p:pl.profs.map(c=>c.id),e:pl.emer.map(c=>c.id),r:pl.rector?pl.rector.card.id:null},
         rect:pl.rector?pl.rector.tile:null,books:pl.played.slice(),em:Object.assign({},pl.emTok),bol:pl.bologna,cst:pl.constTok.length,
         cities:pl.citiesK||[],j:journeys(pl),coins:pl.coins,infl:pl.infl,promos:pl.promos||{S:0,E:0,R:0}}; })};
@@ -665,5 +694,5 @@ function aiChoose(s,depth){
   return best;
 }
 
-global.MagEngine = {wild, W_VERSION, setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
+global.MagEngine = {bookAction, canBookAct, wild, W_VERSION, setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
 })(typeof window!=='undefined'?window:globalThis);
