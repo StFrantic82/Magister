@@ -670,6 +670,15 @@ function renderStats(){
     const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0, f1=v=>v.toFixed(1);
     box.appendChild(el('div',{class:'orn'},el('span',{},t('sx_title'))));
     box.appendChild(el('div',{class:'muted',style:'color:#e9d7b0;text-align:center;margin-top:-8px'},t('sx_note',adv.length)));
+    // --- Comparaison vainqueurs / moyenne / perdants
+    const gm=[['sx_gCoins',p=>(p.g||{}).c||0],['sx_gInfl',p=>(p.g||{}).i||0],['sx_gMoves',p=>(p.g||{}).t||0],['sx_gCities',p=>(p.cities||[]).length],['sx_gJourneys',p=>p.j||0],
+      ['sx_gDrawn',p=>(p.g||{}).b||0],['sx_gPlayed',p=>p.books.length],['sx_gLetters',p=>(p.letters||[]).length],['sx_gHires',p=>p.hires.length],['sx_gPaid',p=>(p.hcost||[]).reduce((a,b)=>a+b,0)],
+      ['sx_gAct',p=>p.nAct||0],['sx_gPromoChoice',p=>p.nPromo||0],['sx_gProf',p=>(p.promos||{}).S||0],['sx_gEmer',p=>(p.promos||{}).E||0],['sx_gRect',p=>p.rect?1:0],['sx_gLeft',p=>(p.coins||0)+(p.infl||0)],['sx_gVP',p=>p.vp]];
+    const gRows=gm.map(([k,f])=>{ const w=mean(W.map(x=>f(x.p))), a=mean(AP.map(x=>f(x.p))), l=mean(L.map(x=>f(x.p))); const d=l?Math.round((w-l)/l*100):null;
+      return el('tr',{},el('td',{},t(k)),el('td',{class:'num',style:'font-weight:700;color:var(--wine2)'},f1(w)),el('td',{class:'num'},f1(a)),el('td',{class:'num'},f1(l)),
+        el('td',{class:'num',style:'color:'+(d===null?'inherit':d>=10?'#1f5a1a':d<=-10?'#8e1f1f':'inherit')},d===null?'—':(d>0?'+':'')+d+' %')); });
+    box.appendChild(el('div',{class:'pcard'},el('h3',{},t('sx_compare')),el('div',{class:'muted',style:'margin-bottom:6px'},t('sx_compareNote')),
+      el('table',{class:'stbl'},el('tr',{},el('th',{},''),el('th',{class:'num'},t('sx_winners')),el('th',{class:'num'},t('sx_avg')),el('th',{class:'num'},t('sx_losers')),el('th',{class:'num'},t('sx_diff'))),gRows)));
     // --- Rythme : courbe des PV par tour
     const maxR=Math.max(...adv.map(g=>g.vpr.length));
     const curve=k=>[...Array(maxR)].map((_,r)=>{ const v=[]; adv.forEach(g=>{ if(g.vpr[r]) g.players.forEach((p,i)=>{ if((k==='w')===p.win) v.push(g.vpr[r][i]); }); }); return v.length>=3?mean(v):null; });

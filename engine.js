@@ -80,11 +80,12 @@ function newGame(opts){
   return s;
 }
 
+function gain(pl,k,n){ pl.g=pl.g||{}; pl.g[k]=(pl.g[k]||0)+n; }
 function drawBooks(s,p,n,silent){
   let got=0;
   for(let k=0;k<n;k++){
     if(!s.bookDeck.length){ if(!s.bookDisc.length) break; s.bookDeck = shuffle(s, s.bookDisc); s.bookDisc=[]; }
-    P(s,p).hand.push(s.bookDeck.shift()); got++;
+    P(s,p).hand.push(s.bookDeck.shift()); got++; gain(P(s,p),'b',1);
   }
   if(!silent && got) log(s,M('log_draw',pn(s,p),got));
 }
@@ -187,7 +188,7 @@ function moveStep(s,p,tr,rest,kind){
   const pl=P(s,p);
   if(rest>0) s.stack.push(kind==='track'?{k:'moveTrack',p,tr,n:rest}:{k:'move',p,n:rest});
   if(pl.trav[tr]>=12) return;
-  pl.trav[tr]++;
+  pl.trav[tr]++; gain(pl,'t',1);
   const cy=D.countries[s.tracks[tr]].cities.find(c=>c[0]===pl.trav[tr]);
   if(cy) s.stack.push({k:'city',p,tr,key:cy[1]});
 }
@@ -215,8 +216,8 @@ function step(s,t){
   case 'eff': {
     if(t.ctx && (t.ctx.abort || (s.aborted&&s.aborted[t.ctx.id]))) return;
     const e=t.e;
-    if(e.c){ pl.coins+=e.c; return; }
-    if(e.i){ pl.infl+=e.i; return; }
+    if(e.c){ pl.coins+=e.c; gain(pl,'c',e.c); return; }
+    if(e.i){ pl.infl+=e.i; gain(pl,'i',e.i); return; }
     if(e.ci){ ask(s,p,'ci',M('q_ci',pn(s,p),e.ci),[{label:M('e_c',e.ci),c:e.ci},{label:M('e_i',e.ci),i:e.ci}],t); return; }
     if(e.t){ s.stack.push({k:'move',p,n:e.t}); return; }
     if(e.tr){ s.stack.push({k:'moveTrack',p,tr:TR.indexOf(e.tr),n:e.n}); return; }
@@ -352,7 +353,7 @@ function resolve(s,pd,o){
     pl.hand.splice(o.hk,1); s.bookDisc.push(o.book); log(s,M('log_discard',pl.name,effsTxt(discEff(s,p,o.book))));
     if(pd.kind==='setupBook') s.stack.push({k:'setupBookNext',p});
     pushSeq(s,p,discEff(s,p,o.book)); return;
-  case 'ci': if(o.c) pl.coins+=o.c; else pl.infl+=o.i; return;
+  case 'ci': if(o.c){ pl.coins+=o.c; gain(pl,'c',o.c); } else { pl.infl+=o.i; gain(pl,'i',o.i); } return;
   case 'move': moveStep(s,p,o.tr,t.n-1); return;
   case 'letter': {
     s.letters.splice(s.letters.indexOf(o.letter),1); (pl.lettersK=pl.lettersK||[]).push(o.letter);
@@ -445,7 +446,7 @@ function hire(s,p,slot,free){
   (pl.hires=pl.hires||[]).push(co.id); (pl.hireCost=pl.hireCost||[]).push(cost); (pl.hireSlot=pl.hireSlot||[]).push(free?-1:slot);
   const c=CARD[co.id];
   log(s,M(cost?'log_hireCost':'log_hire',pl.name,c.name,TY(c.type),LV(c.lvl),cost));
-  if(hasRect(pl,'1a') && cardWoa(co).length){ pl.coins++; pl.infl++; }
+  if(hasRect(pl,'1a') && cardWoa(co).length){ pl.coins++; pl.infl++; gain(pl,'c',1); gain(pl,'i',1); }
   // ordre : bonus d'embauche → choix Activation/Promotion → remplissage de la rangée
   s.stack.push({k:'refill'});
   s.stack.push({k:'choice',p,id:co.id});
@@ -569,7 +570,7 @@ function summary(s,src){
   return {t:Date.now(),src,n,cs:s.tracks.slice(),vpr:s.vpRounds||[],deckOut:!!s.deckOut,turns:s.turnNo,rounds:Math.round(s.turnNo/n*10)/10,start:s.start,
     rects:Object.assign({},s.rectSlotsInit||{}),objs:Object.fromEntries(Object.entries(s.objSlots).map(([k,o])=>[k,o.tile])),
     players:s.players.map((pl,k)=>{ const r=s.ranking.findIndex(x=>x.k===k);
-      return {seat:k,ai:pl.ai,vp:vp(s,k),rank:r+1,win:s.winners.includes(k),start:pl.start||[],first:pl.first||{},nAct:pl.nAct||0,nPromo:pl.nPromo||0,slots:pl.hireSlot||[],letters:pl.lettersK||[],trav:pl.trav.slice(),hires:pl.hires||[],hcost:pl.hireCost||[],
+      return {seat:k,ai:pl.ai,vp:vp(s,k),rank:r+1,win:s.winners.includes(k),start:pl.start||[],g:pl.g||{},first:pl.first||{},nAct:pl.nAct||0,nPromo:pl.nPromo||0,slots:pl.hireSlot||[],letters:pl.lettersK||[],trav:pl.trav.slice(),hires:pl.hires||[],hcost:pl.hireCost||[],
         fin:{s:pl.students.map(c=>c.id),p:pl.profs.map(c=>c.id),e:pl.emer.map(c=>c.id),r:pl.rector?pl.rector.card.id:null},
         rect:pl.rector?pl.rector.tile:null,books:pl.played.slice(),em:Object.assign({},pl.emTok),bol:pl.bologna,cst:pl.constTok.length,
         cities:pl.citiesK||[],j:journeys(pl),coins:pl.coins,infl:pl.infl,promos:pl.promos||{S:0,E:0,R:0}}; })};
