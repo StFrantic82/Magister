@@ -153,7 +153,8 @@ function run(s){
     break;
   }
 }
-function pushSeq(s,p,effs,ctx){ ctx=ctx||{}; for(let k=effs.length-1;k>=0;k--) s.stack.push({k:'eff',p,e:effs[k],ctx}); }
+function abortCtx(s,ctx){ if(!ctx) return; ctx.abort=true; if(ctx.id){ (s.aborted=s.aborted||{})[ctx.id]=1; } }
+function pushSeq(s,p,effs,ctx){ ctx=ctx||{id:(s.ctxc=(s.ctxc||0)+1)}; for(let k=effs.length-1;k>=0;k--) s.stack.push({k:'eff',p,e:effs[k],ctx}); }
 function moveStep(s,p,tr,rest,kind){
   // un pas sur le parcours tr ; la Ville éventuelle est résolue avant les déplacements restants
   const pl=P(s,p);
@@ -185,7 +186,7 @@ function step(s,t){
     else startTurn(s,s.start);
     return;
   case 'eff': {
-    if(t.ctx && t.ctx.abort) return;
+    if(t.ctx && (t.ctx.abort || (s.aborted&&s.aborted[t.ctx.id]))) return;
     const e=t.e;
     if(e.c){ pl.coins+=e.c; return; }
     if(e.i){ pl.infl+=e.i; return; }
@@ -243,9 +244,11 @@ function step(s,t){
     for(let k=5;k>=0 && pos<t.max;k--) if(s.row[k]){ pos++; opts.push({label:M('o_rowpos',pos,cn(s.row[k].id)),slot:k,cards:[s.row[k].id]}); }
     if(!opts.length) return;
     ask(s,p,'take',M('q_take',pn(s,p),t.max),opts,t); return; }
-  case 'elim':
-    if(!pl.students.length){ t.ctx.abort=true; log(s,M('log_noElim',pn(s,p))); return; }
-    ask(s,p,'elim',M('q_elim',pn(s,p)),pl.students.map((co,k)=>({label:M('o_elim',cn(co.id)),idx:k,cards:[co.id]})).concat([{label:M('o_noElim'),pass:1}]),t); return;
+  case 'elim': {
+    // on ne peut pas éliminer la carte qu'on vient d'embaucher
+    const cand=pl.students.map((co,k)=>[co,k]).filter(([co])=>co.uid===undefined||co.uid!==s.turn.hired);
+    if(!cand.length){ abortCtx(s,t.ctx); log(s,M('log_noElim',pn(s,p))); return; }
+    ask(s,p,'elim',M('q_elim',pn(s,p)),cand.map(([co,k])=>({label:M('o_elim',cn(co.id)),idx:k,cards:[co.id]})).concat([{label:M('o_noElim'),pass:1}]),t); return; }
   case 'hire': return hire(s,p,t.slot,t.free);
   case 'choice': {
     const c=CARD[t.id]; if(!c.act) return;
@@ -326,7 +329,7 @@ function resolve(s,pd,o){
   case 'promo': if(!o.pass) doPromo(s,p,o.to,o.idx,false); return;
   case 'freePromo': doPromo(s,p,'S',o.idx,true); return;
   case 'take': s.stack.push({k:'hire',p,slot:o.slot,free:true}); return;
-  case 'elim': { if(o.pass){ t.ctx.abort=true; return; } const [co]=pl.students.splice(o.idx,1); log(s,M('log_elim',pl.name,cn(co.id))); return; }
+  case 'elim': { if(o.pass){ abortCtx(s,t.ctx); return; } const [co]=pl.students.splice(o.idx,1); log(s,M('log_elim',pl.name,cn(co.id))); return; }
   case 'choice':
     if(o.act) s.stack.push({k:'activate',p,type:o.act});
     else if(o.promo) s.stack.push({k:'promo',p});

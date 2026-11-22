@@ -705,7 +705,6 @@ function renderSim(light){
       el('label',{},t('si_gens'),num('gens',1,200)),
       el('label',{},t('si_perGen'),num('perGen',2,100)),
       el('label',{},t('si_players'),seg('tPlayers',[[2,'2'],[3,'3'],[4,'4']])),
-      el('label',{style:'flex-direction:row;align-items:center;gap:6px'},el('input',{type:'checkbox',checked:simCfg.rush?'':null,onchange:e=>{simCfg.rush=e.target.checked;}}),t('si_rush')),
       el('button',{class:'primary',disabled:busy?'':null,onclick:()=>{ simCfg.countries=pickedCountries('#cboxS'); runJob('train'); }},t('si_startTrain')),
       busy&&job.kind==='train'?el('button',{onclick:stopJob},t('si_stop')):null)));
   box.appendChild(simLive());
