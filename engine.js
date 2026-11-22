@@ -122,6 +122,20 @@ function objOk(s,p,tile){
   }
   return false;
 }
+function objProgress(s,p,tile){
+  const pl=P(s,p), cap=x=>Math.max(0,Math.min(1,x));
+  switch(tile){
+    case 'A1': return D.TYPES.reduce((a,t)=>a+Math.min(2,countType(pl,t)),0)/8;
+    case 'A2': return cap(Math.max(...D.TYPES.map(t=>countType(pl,t)))/6);
+    case 'B1': return cap(Math.max(...pl.trav)/12)*0.5+cap(Math.min(pl.coins,6)/6)*0.25+cap(Math.min(pl.infl,6)/6)*0.25;
+    case 'B2': return cap(pl.trav.slice().sort((a,b)=>b-a).slice(0,2).reduce((a,b)=>a+b,0)/24);
+    case 'C1': return cap(pl.profs.length/5);
+    case 'C2': return cap(pl.emer.length/3);
+    case 'D1': return cap(new Set(woaList(pl)).size/5);
+    case 'D2': return cap(woaList(pl).length/7);
+  }
+  return 0;
+}
 function autoClaim(s,p){
   const pl=P(s,p);
   D.TYPES.forEach(t=>{
@@ -490,11 +504,13 @@ function evalState(s,p){
   v += pl.trav.reduce((a,x)=>a+x*W.trav+(x>=12?W.journey:0),0);
   v += pl.hand.reduce((a,b)=>a+(bookOk(s,p,b)?W.bookOk:W.book),0);
   D.TYPES.forEach(t=>{ if(pl.emTok[t]===undefined && pl.emer.some(co=>CARD[co.id].type===t) && s.objSlots[t].stack.length) v+=W.emObj; });
+  // progression vers les objectifs Émérites encore disponibles (le personnage du Recteur 3b y contribue)
+  D.TYPES.forEach(t=>{ if(pl.emTok[t]!==undefined || !s.objSlots[t].stack.length) return; v+=(W.objp===undefined?2:W.objp)*objProgress(s,p,s.objSlots[t].tile)*(pl.emer.some(co=>CARD[co.id].type===t)?1.5:1); });
   v += woaList(pl).length*W.woa;
   if(pl.rector){ v+=W.rector;
     // pouvoir permanent du Recteur : sa valeur dépend des tours restants
     const left=Math.max(1,11.5-s.turnNo/s.players.length), unit=(W.coin+W.infl)/2;
-    const perTurn={'1a':0.8,'1b':1.3,'2a':0.7,'2b':0.5,'3a':0.7,'3b':0,'4a':0.8,'4b':1.3}[pl.rector.tile]||0;
+    const perTurn={'1a':0.8,'1b':1.3,'2a':0.7,'2b':0.5,'3a':0.7,'3b':0.4,'4a':0.8,'4b':1.3}[pl.rector.tile]||0;
     v+=(W.rpow===undefined?1:W.rpow)*perTurn*left*unit + (pl.rector.tile==='3b'?3:0);
   }
   // progression vers le Recteur : influence épargnée si un Professeur peut y prétendre
