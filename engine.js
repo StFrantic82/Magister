@@ -487,7 +487,7 @@ function finish(s){
 }
 
 // ---------- IA ----------
-const DEFAULT_W={"rprog":0.685,"eprog":0.275,"race":0.08,"near":0.496,"lvl":1.335,"vp":9.705,"coin":0.628,"infl":0.722,"stu":2.558,"prof":5.529,"abil":0.862,"trig":0.692,"emer":9.22,"trav":0.597,"journey":1.958,"bookOk":3.763,"book":0.996,"emObj":6.696,"woa":0.501,"rector":11.714,"opp":3.836};
+const DEFAULT_W={"dear":3,"rprog":0.685,"eprog":0.275,"race":0.08,"near":0.496,"lvl":1.335,"vp":9.705,"coin":0.628,"infl":0.722,"stu":2.558,"prof":5.529,"abil":0.862,"trig":0.692,"emer":9.22,"trav":0.597,"journey":1.958,"bookOk":3.763,"book":0.996,"emObj":6.696,"woa":0.501,"rector":11.714,"opp":3.836};
 const W_VERSION=3;
 let GLOBAL_W=Object.assign({},DEFAULT_W);
 let AI_DEPTH=2;
@@ -532,6 +532,7 @@ function summary(s,src){
         rect:pl.rector?pl.rector.tile:null,books:pl.played.slice(),em:Object.assign({},pl.emTok),bol:pl.bologna,cst:pl.constTok.length,
         cities:pl.citiesK||[],j:journeys(pl),coins:pl.coins,infl:pl.infl,promos:pl.promos||{S:0,E:0,R:0}}; })};
 }
+function W0(){ return GLOBAL_W; }
 function aiChooseGreedy(s,depth){
   depth=depth||0;
   const pd=s.pending, p=pd.p;
@@ -549,6 +550,8 @@ function aiChooseGreedy(s,depth){
       choose(c,aiChooseGreedy(c,depth+1));
     }
     let v=evalState(c,p) + (o.pass?-0.3:0) + rnd({rng:k*7+s.ver})*0.2;
+    // payer cher (4-5 d'influence) seulement si ça rapporte des PV tout de suite
+    if(pd.kind==='turn' && o.hire!==undefined && depth===0){ const cost=hireCost(s,p,o.hire,false); if(cost>=3 && vp(c,p)<=vp(s,p)) v-=(W0().dear===undefined?1:W0().dear)*Math.pow(cost-2,1.5); }
     if(o.endTurn) v+=0.5;
     if(v>bv){ bv=v; best=k; }
   }

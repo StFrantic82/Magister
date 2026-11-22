@@ -32,7 +32,7 @@ fr:{
  st_title:'Statistiques',st_source:'Origine',st_all:'Toutes',st_human:'Parties jouées',st_sim:'Simulations',st_train:'Entraînement',st_players:'Joueurs',st_any:'Tous',
  st_games:'Parties',st_rounds:'Tours par joueur',st_winVP:'PV du vainqueur',st_firstWin:'Victoires du 1er joueur',st_humanWin:'Victoires humaines',
  st_seats:'Victoires par place',st_seat:'Place',st_wins:'Victoires',st_cards:'Étudiants',st_card:'Carte',st_type:'Type',st_level:'Niveau',
- st_hired:'Recrutée',st_hiredWin:'Victoire de l\'recruteur',st_prof:'Finit Professeur',st_emer:'Finit Émérite',st_rect:'Recteur',
+ st_hired:'Recrutée',st_hiredWin:'Victoire du recruteur',st_prof:'Finit Professeur',st_emer:'Finit Émérite',st_rect:'Recteur',
  st_books:'Livres',st_book:'Livre',st_played:'Joué',st_playedWin:'Victoire du joueur',st_rectors:'Recteurs',st_rector:'Recteur',st_taken:'Pris',st_takenWin:'Victoire du joueur',
  st_objs:'Objectifs Émérites',st_obj:'Objectif',st_claimed:'Réclamé (par partie où il sort)',st_countries:'Pays',st_country:'Pays',st_cities:'Villes',st_city:'Ville',st_reached:'Atteinte (par partie)',
  st_vpSources:'D\'où viennent les PV du vainqueur',st_src_books:'Livres',st_src_em:'Objectifs Émérites',st_src_rect:'Recteur',st_src_bol:'Bologne',st_src_cst:'Constantinople',
