@@ -548,11 +548,11 @@ function renderStats(){
   const distBox=el('div',{style:'display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:10px'},dk.map(k=>{ const inR=k>=10&&k<=12;
     return el('div',{style:'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%',title:k+' : '+dist[k]},
       el('div',{style:'font-size:12px'},String(dist[k])),
-      el('div',{style:'width:100%;max-width:38px;border-radius:4px 4px 0 0;background:'+(inR?'var(--wine2)':'#c9a96a')+';height:'+Math.max(3,Math.round(dist[k]/dmax*110))+'px'}),
+      el('div',{style:'width:100%;max-width:38px;border-radius:4px 4px 0 0;background:var(--wine2);height:'+Math.max(3,Math.round(dist[k]/dmax*110))+'px'}),
       el('div',{style:'font-size:13px;margin-top:3px'},String(k))); }));
   const seats=[0,1,2,3].map(sx=>{ const gs=games.filter(g=>g.n>sx); return {seat:sx+1,g:gs.length,w:gs.filter(g=>g.players[sx]&&g.players[sx].win).length}; }).filter(x=>x.g);
   box.appendChild(el('div',{class:'two'},
-    el('div',{class:'pcard'},el('h3',{},t('st_lengthDist')),distBox,el('div',{class:'muted',style:'margin-top:6px'},'■ '+t('st_target'))),
+    el('div',{class:'pcard'},el('h3',{},t('st_lengthDist')),distBox),
     el('div',{class:'pcard'},el('h3',{},t('st_seats')),sortable([{h:t('st_seat'),f:r=>r.seat},{h:t('st_games'),num:1,f:r=>r.g},{h:t('st_wins'),num:1,f:r=>r.g?r.w/r.g:0,r:r=>barCell(r.w/r.g,1,pct(r.w,r.g))}],seats,'seats'))));
   // sources de PV des vainqueurs
   const src={books:0,em:0,rect:0,bol:0,cst:0};
@@ -571,7 +571,7 @@ function renderStats(){
   }));
   const crow=Object.values(cs);
   const lv=[1,2,3].map(l=>{ const rs=crow.filter(r=>r.c.lvl===l); const h=rs.reduce((a,r)=>a+r.h,0), hw=rs.reduce((a,r)=>a+r.hw,0), cost=[].concat(...rs.map(r=>r.cost)); return {l,h,hw,cost,per:h/N}; });
-  box.appendChild(el('div',{class:'pcard'},el('h3',{},t('st_levels')),el('div',{class:'muted',style:'margin-bottom:6px'},t('st_levelsNote')),
+  box.appendChild(el('div',{class:'pcard'},el('h3',{},t('st_levels')),
     sortable([{h:t('st_level'),f:r=>r.l,r:r=>el('span',{},icon('lv_'+r.l,22),' '+t('L_'+r.l))},
       {h:t('st_hiresPerGame'),num:1,f:r=>r.per,r:r=>el('span',{},r.per.toFixed(1))},
       {h:t('st_cost'),num:1,f:r=>r.cost.length?avg(r.cost):-1,r:r=>barCell(r.cost.length?avg(r.cost):0,5,r.cost.length?avg(r.cost).toFixed(2):'—')},
@@ -720,6 +720,34 @@ function simLive(){
   wrap.appendChild(card);
   return wrap;
 }
+
+// =========== APERÇU AU SURVOL ===========
+(function(){
+  if(window.matchMedia && !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  const pv=document.createElement('div'); pv.id='hoverPrev'; document.body.appendChild(pv);
+  const OK=/(^|\/)(cards|book|rect|obj|city|let)\//;
+  let cur=null;
+  function srcOf(t){
+    if(!t||t.closest('#zoom')||t.closest('#hoverPrev')) return null;
+    if(t.tagName==='IMG'){ const s=t.getAttribute('src')||''; return OK.test(s)?s:null; }
+    const c=t.closest('.cell.city'); if(c){ const m=(c.style.backgroundImage||'').match(/url\("?([^")]+)"?\)/); return m?m[1]:null; }
+    return null;
+  }
+  function place(el,src){
+    const isCard=/cards\/|book\//.test(src);
+    const w=isCard?210:/city\//.test(src)?170:190;
+    pv.innerHTML=''; const im=document.createElement('img'); im.src=src; im.style.width=w+'px'; pv.appendChild(im);
+    const r=el.getBoundingClientRect(), vw=innerWidth, vh=innerHeight;
+    if(r.width>=w*0.65){ pv.style.display='none'; return; } // déjà assez grande
+    const h=isCard?w*1.48:w*1.1;
+    let x=r.right+12; if(x+w>vw-8) x=r.left-12-w; if(x<8) x=Math.min(vw-w-8,Math.max(8,r.left));
+    let y=r.top+r.height/2-h/2; y=Math.max(8,Math.min(vh-h-8,y));
+    pv.style.left=x+'px'; pv.style.top=y+'px'; pv.style.display='block';
+  }
+  document.addEventListener('mouseover',e=>{ const src=srcOf(e.target); if(!src){ if(cur&&!e.target.closest('.cell.city')){ cur=null; pv.style.display='none'; } return; } const el=e.target.closest('.cell.city')||e.target; if(el===cur) return; cur=el; place(el,src); });
+  document.addEventListener('scroll',()=>{ cur=null; pv.style.display='none'; },true);
+  document.addEventListener('click',()=>{ cur=null; pv.style.display='none'; },true);
+})();
 
 // init
 (function(){ const f=$('#fan'); const ids=[26,59,29,31,45,30,62]; ids.forEach((id,i)=>{ const r=(i-(ids.length-1)/2)*7; const im=el('img',{src:'cards/'+id+'.webp',alt:CARD[id].name,style:'transform:rotate('+r+'deg) translateY('+Math.abs(r)*1.3+'px);z-index:'+(10-Math.abs(i-3))}); im.onclick=()=>zoomCard(id); f.appendChild(im); }); })();
