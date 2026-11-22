@@ -471,7 +471,8 @@ function finish(s){
 }
 
 // ---------- IA ----------
-const DEFAULT_W={rprog:0.6,eprog:0.3,race:0.1,near:0.5,lvl:1.5,vp:10,coin:0.75,infl:0.8,stu:2.2,prof:5,abil:1.2,trig:0.6,emer:10,trav:0.55,journey:2,bookOk:5,book:1.2,emObj:5,woa:0.5,rector:10,opp:3};
+const DEFAULT_W={"rprog":0.685,"eprog":0.275,"race":0.08,"near":0.496,"lvl":1.335,"vp":9.705,"coin":0.628,"infl":0.722,"stu":2.558,"prof":5.529,"abil":0.862,"trig":0.692,"emer":9.22,"trav":0.597,"journey":1.958,"bookOk":3.763,"book":0.996,"emObj":6.696,"woa":0.501,"rector":11.714,"opp":3.836};
+const W_VERSION=3;
 let GLOBAL_W=Object.assign({},DEFAULT_W);
 let AI_DEPTH=2;
 function setAIDepth(d){ AI_DEPTH=d; }
@@ -637,5 +638,5 @@ function aiChoose(s,depth){
   return best;
 }
 
-global.MagEngine = {setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
+global.MagEngine = {W_VERSION, setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
 })(typeof window!=='undefined'?window:globalThis);

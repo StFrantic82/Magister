@@ -489,11 +489,11 @@ async function loadWeights(){
   let w=null;
   if(db){ try{ const d=await db.doc('ai/best').get(); if(d.exists) w=d.data(); }catch(e){} }
   if(!w){ try{ w=JSON.parse(store.get('mag_aiw')||'null'); }catch(e){} }
-  if(w&&w.w){ AIW=w; E.setWeights(w.w); }
+  if(w&&w.w&&w.v===E.W_VERSION){ AIW=w; E.setWeights(w.w); }
   if(view==='sim') renderSim();
 }
 async function saveWeights(w,gen){
-  AIW={w,gen,updated:Date.now()}; E.setWeights(w);
+  AIW={w,gen,updated:Date.now(),v:E.W_VERSION}; E.setWeights(w);
   if(db){ try{ await db.doc('ai/best').set(AIW); return t('si_saved'); }catch(e){} }
   store.set('mag_aiw',JSON.stringify(AIW)); return t('si_savedLocal');
 }
