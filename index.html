@@ -175,6 +175,12 @@ button.small{padding:3px 10px;font-size:14px}
 .ctrls label{display:flex;flex-direction:column;gap:4px;font-family:'IM Fell English SC';font-size:16px;color:var(--wine2)}
 #hoverPrev{position:fixed;z-index:60;pointer-events:none;display:none;filter:drop-shadow(0 10px 24px rgba(0,0,0,.6))}
 #hoverPrev img{display:block;border-radius:10px;border:2px solid #e9d7b0}
+.cell.target{cursor:pointer;outline:3px solid #f6d98c;box-shadow:0 0 0 5px #000,0 0 14px #f6d98c;animation:pulse 1.2s ease-in-out infinite;z-index:2}
+@keyframes pulse{50%{box-shadow:0 0 0 5px #000,0 0 22px #f6d98c}}
+#decide .hint{font-size:17px}
+#decide .opts button.cbtn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px}
+.cthumbs{display:flex;gap:4px}.cthumbs img{width:92px;border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+@media(max-width:700px){.cthumbs img{width:64px}}
 /* ---------- Jeu ---------- */
 #game{padding:8px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:8px;max-width:1700px;margin:0 auto 150px}
 @media(max-width:1100px){#game{grid-template-columns:1fr}}

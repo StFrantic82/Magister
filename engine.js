@@ -428,7 +428,9 @@ function startTurn(s,p){
 function mainOpts(s,p){
   const pl=P(s,p), opts=[];
   s.row.forEach((co,k)=>{ if(!co) return; const c=hireCost(s,p,k,false); if(canPay(pl,0,c)) opts.push({label:M('o_hire',cn(co.id),c),hire:k,cards:[co.id]}); });
-  return opts.concat(bookOpts(s,p));
+  const all=opts.concat(bookOpts(s,p));
+  if(!opts.length) all.push({label:M('o_passTurn'),endTurn:1});
+  return all;
 }
 function bookOpts(s,p){
   const pl=P(s,p), opts=[];
@@ -503,7 +505,7 @@ function summary(s,src){
         rect:pl.rector?pl.rector.tile:null,books:pl.played.slice(),em:Object.assign({},pl.emTok),bol:pl.bologna,cst:pl.constTok.length,
         cities:pl.citiesK||[],j:journeys(pl),coins:pl.coins,infl:pl.infl,promos:pl.promos||{S:0,E:0,R:0}}; })};
 }
-function aiChoose(s,depth){
+function aiChooseGreedy(s,depth){
   depth=depth||0;
   const pd=s.pending, p=pd.p;
   if(pd.opts.length===1) return 0;
@@ -517,7 +519,7 @@ function aiChoose(s,depth){
       guard++;
       if(c.pending.kind==='end'){ const pi=c.pending.opts.findIndex(x=>x.play!==undefined), ei=c.pending.opts.findIndex(x=>x.endTurn);
         choose(c, pi>=0?pi:(ei>=0?ei:c.pending.opts.findIndex(x=>x.disc!==undefined))); break; }
-      choose(c,aiChoose(c,depth+1));
+      choose(c,aiChooseGreedy(c,depth+1));
     }
     let v=evalState(c,p) + (o.pass?-0.3:0) + rnd({rng:k*7+s.ver})*0.2;
     if(o.endTurn) v+=0.5;
@@ -526,5 +528,111 @@ function aiChoose(s,depth){
   return best;
 }
 
-global.MagEngine = {setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
+
+// ---------- IA qui anticipe (simulations de fins de partie) ----------
+const effVal=e=>{ if(e.c) return e.c; if(e.i) return e.i*1.1; if(e.ci) return e.ci*1.1; if(e.t) return e.t*0.9; if(e.tr) return e.n*0.8; if(e.b) return e.b*1.8; if(e.l) return e.l*1.5; if(e.r) return 0.5; if(e.p) return 2.5; if(e.pf) return 5; if(e.take) return 3; if(e.elim) return -1.5; if(e.per) return 3; return 0; };
+const cardVal=id=>{ const c=CARD[id]; return c.H.reduce((a,e)=>a+effVal(e),0)+c.A.reduce((a,e)=>a+effVal(e),0)*1.3+c.trig.length*0.8+c.lvl*1.2+(c.woa?0.8:0); };
+let FP={"cost": 3.98, "act0": 0.994, "act": 2.85, "promoER": 17.591, "promoS": 3.269, "R": 14.5, "E": 29.609, "S": 1.282, "lvl": 0.803, "abil": 1.167, "trig": 0.338, "woa": 0.187, "book": 1.042, "city": 2.369, "cityd": 0.479, "noise": 0.394, "save8": 0.414};
+function setFP(o){ Object.assign(FP,o||{}); }
+const cardValF=id=>{ const c=CARD[id]; return c.H.reduce((a,e)=>a+effVal(e),0)+c.A.reduce((a,e)=>a+effVal(e),0)*FP.abil+c.trig.length*FP.trig+c.lvl*FP.lvl+(c.woa?FP.woa:0); };
+function fastChoose(s){
+  const pd=s.pending, p=pd.p, pl=P(s,p), O=pd.opts;
+  let best=0, bv=-1e9;
+  const rectWant=!pl.rector && pl.profs.some(co=>s.rectSlots[CARD[co.id].type]);
+  O.forEach((o,k)=>{
+    let v=Math.random()*FP.noise;
+    if(o.pass) v-=3;
+    if(o.play!==undefined) v+=100;
+    if(o.endTurn) v+=50;
+    if(o.disc!==undefined) v+=(pd.kind==='end'?10:-20);
+    if(o.hire!==undefined){ const c=hireCost(s,p,o.hire,false); v+=cardValF(s.row[o.hire].id)-c*FP.cost - (rectWant && pl.infl-c<8 && pl.infl>=8 ? FP.save8:0); }
+    if(o.slot!==undefined && s.row[o.slot]) v+=cardValF(s.row[o.slot].id);
+    if(o.act){ v+=FP.act0+pl.profs.filter(co=>CARD[co.id].trig.includes(o.act)).length*FP.act; }
+    if(o.promo) v+=promoOptions(s,p).some(x=>x.to!=='S')?FP.promoER:FP.promoS;
+    if(o.to) v+= o.to==='R'?FP.R:o.to==='E'?FP.E:FP.S-o.idx*0.3;
+    if(o.c) v+= pl.coins<pl.infl?1:0;
+    if(o.i) v+= pl.infl<=pl.coins?1:0;
+    if(o.tr!==undefined && pd.kind==='move'){ const cy=D.countries[s.tracks[o.tr]].cities.map(c=>c[0]).filter(n=>n>pl.trav[o.tr]); v+= cy.length? FP.city-(cy[0]-pl.trav[o.tr])*FP.cityd : -2; }
+    if(o.pair!==undefined){ const pr=s.pairs[o.pair]; v+=cardValF(pr[0])+cardValF(pr[1]); }
+    if(o.prof) v+=CARD[o.prof].A.reduce((a,e)=>a+effVal(e),0);
+    if(o.book!==undefined && pd.kind!=='turn' && pd.kind!=='end') v+= bookOk(s,p,o.book)?-5:0;
+    if(v>bv){ bv=v; best=k; }
+  });
+  return best;
+}
+function playout(c,p,cap){
+  let n=0, at8=null;
+  while(!c.over && c.pending && n<cap){ choose(c,fastChoose(c)); n++; if(at8===null && vp(c,p)>=8) at8=c.turnNo; }
+  return at8;
+}
+let MC={on:false, sims:6, cap:4000};
+function setMC(o){ Object.assign(MC,o||{}); }
+const MC_KINDS={turn:1,choice:1,promo:1};
+function mcScore(c,p,at8){
+  const n=c.players.length;
+  if(c.over){
+    const win=c.winners.includes(p)?1/c.winners.length:0;
+    const rounds=(at8!==null?at8:c.turnNo)/n;
+    // gagner, et vite : chaque tour gagné compte, dépasser 8 PV ne rapporte rien
+    return win*2 + (at8!==null? (16-rounds)*0.12 : vp(c,p)*0.05);
+  }
+  return vp(c,p)*0.1;
+}
+// Planification sur deux tours : pour chaque choix, on joue la fin de mon tour, puis les adversaires (rapidement),
+// puis on cherche ma meilleure embauche au tour suivant ; on garde le choix qui mène à la meilleure position.
+let PLAN={on:false, oppFast:true};
+function setPlan(o){ Object.assign(PLAN,o||{}); }
+function finishOwnTurn(c,p){ let g=0; while(c.pending&&!c.over&&c.pending.p===p&&g<60){ choose(c,fastChoose(c)); g++; } }
+function finishOwnTurnGreedy(c,p){ let g=0; while(c.pending&&!c.over&&c.pending.p===p&&g<40){ if(c.pending.kind==='turn'&&g>0) break; choose(c,aiChooseGreedy(c,1)); g++; } }
+function bestNextTurn(c,p){
+  // adversaires jusqu'à mon prochain tour
+  let g=0; while(c.pending&&!c.over&&c.pending.p!==p&&g<400){ choose(c,fastChoose(c)); g++; }
+  if(c.over) return evalState(c,p);
+  if(!c.pending||c.pending.kind!=='turn') return evalState(c,p);
+  let bv=-1e9;
+  const O=c.pending.opts;
+  for(let k=0;k<O.length;k++){ if(O[k].disc!==undefined) continue; const d=clone(c); choose(d,k); finishOwnTurn(d,p); const v=evalState(d,p)+(vp(d,p)>=8?40:0); if(v>bv) bv=v; }
+  return bv;
+}
+function aiPlan(s){
+  const pd=s.pending, p=pd.p;
+  let best=0, bv=-1e9;
+  for(let k=0;k<pd.opts.length;k++){
+    const o=pd.opts[k]; if(o.disc!==undefined && pd.kind==='turn') continue;
+    let c; try{ c=clone(s); choose(c,k); }catch(e){ continue; }
+    finishOwnTurnGreedy(c,p);
+    const now=evalState(c,p)+(vp(c,p)>=8?60:0);
+    let v=now;
+    if(!c.over && vp(c,p)<8){ v=0.4*now+0.6*bestNextTurn(c,p); }
+    if(v>bv){ bv=v; best=k; }
+  }
+  return best;
+}
+function aiChoose(s,depth){
+  const pd=s.pending;
+  if(PLAN.on && pd.kind==='turn' && pd.opts.length>1 && !depth) return aiPlan(s);
+  if(!MC.on || !MC_KINDS[pd.kind] || pd.opts.length<2) return aiChooseGreedy(s,depth);
+  const p=pd.p;
+  let idx=pd.opts.map((o,k)=>k);
+  if(pd.kind==='end'){ const pi=idx.find(k=>pd.opts[k].play!==undefined); if(pi!==undefined) return pi; }
+  if(idx.length>9){ // préfiltre par l'heuristique gloutonne rapide
+    const sc=idx.map(k=>{ const c=clone(s); choose(c,k); return [k,evalState(c,p)]; }).sort((a,b)=>b[1]-a[1]);
+    idx=sc.slice(0,9).map(x=>x[0]);
+  }
+  let best=idx[0], bv=-1e9;
+  for(const k of idx){
+    let tot=0;
+    for(let r=0;r<MC.sims;r++){
+      const c=clone(s); c.rng=(c.rng+r*7919+k*104729)>>>0;
+      try{ choose(c,k); }catch(e){ tot=-1e9; break; }
+      const at8=(vp(c,p)>=8)?c.turnNo:playout(c,p,MC.cap);
+      tot+=mcScore(c,p,at8);
+    }
+    const v=tot/MC.sims + (pd.opts[k].pass?-0.05:0);
+    if(v>bv){ bv=v; best=k; }
+  }
+  return best;
+}
+
+global.MagEngine = {setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
 })(typeof window!=='undefined'?window:globalThis);
