@@ -287,7 +287,19 @@ function renderDecide(){
 // =========== EN LIGNE ===========
 function onlineFail(){ onlineFailed=true; db=null; $('#onlineOff').textContent=t('ui_onlineNo'); }
 (async function initOnline(){
-  if(!window.claude||!window.claude.use){ onlineFail(); return; }
+  if(!window.claude||!window.claude.use){
+    // hors de claude.ai : Firebase si configuré
+    try{
+      const r=window.MAG_NET&&await window.MAG_NET.init();
+      if(!r){ onlineFail(); return; }
+      db=r.db; myUid=r.uid; onlineFailed=false;
+      $('#onlineOff').classList.add('hidden'); $('#onlineOn').classList.remove('hidden');
+      $('#myName').value=store.get('mag_name')||'';
+      const last=store.get('mag_table'); if(last) $('#joinCode').value=last;
+      loadWeights(); STATS=null;
+    }catch(e){ console.warn(e); onlineFail(); }
+    return;
+  }
   const timer=setTimeout(()=>{ if(!db) onlineFail(); },10000);
   try{
     const d=await window.claude.use('db'); const user=await window.claude.use('user');
