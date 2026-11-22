@@ -726,11 +726,10 @@ function simLive(){
   if(res.length){
     const r=avg(res.map(g=>g.rounds)); const flag=r<10?['warn',t('si_low')]:r>12?['warn',t('si_high')]:['ok',t('si_inRange')]; const at11=res.filter(g=>Math.round(g.rounds)===11).length;
     const wins=[]; res.forEach(g=>g.players.forEach(p=>{ if(p.win) wins.push(p); }));
-    const kp=[[r.toFixed(1),t('si_avgRounds'),el('span',{class:'flag '+flag[0]},flag[1])],[avg(wins.map(p=>p.vp)).toFixed(1),t('si_avgVP')]];
+    const kp=[[r.toFixed(1),t('si_avgRounds')],[avg(wins.map(p=>p.vp)).toFixed(1),t('si_avgVP')]];
     kp.push([pct(at11,res.length),t('si_at11')]);
     if(job.ms.length) kp.push([(avg(job.ms)/1000).toFixed(1)+' s',t('si_avgTime')]);
     card.appendChild(el('div',{class:'kpis'},kp.map(([v,l,x])=>el('div',{class:'kpi'},el('div',{class:'v'},v),el('div',{class:'l'},l,x?el('br'):null,x||null)))));
-    card.appendChild(el('div',{class:'muted',style:'margin-top:6px'},t('si_target')));
     if(job.kind==='batch'){ const n=res[0].n; const sw=[...Array(n)].map((_,k)=>res.filter(g=>g.players[k].win).length);
       card.appendChild(el('div',{style:'margin-top:10px'},el('b',{},t('si_seatWins')+' : '),sw.map((w,k)=>el('span',{style:'margin-right:14px'},'#'+(k+1)+' '+pct(w,res.length))))); }
   }
