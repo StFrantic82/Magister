@@ -104,7 +104,7 @@ const books=[
  {id:3,cond:{k:'spe',v:'N'},disc:[{t:1}],txt:'1 Étudiant + 1 Professeur + 1 Émérite Nobles'},
  {id:4,cond:{k:'spe',v:'R'},disc:[{t:1}],txt:'1 Étudiant + 1 Professeur + 1 Émérite Religieux'},
  {id:5,cond:{k:'prof4'},disc:[{i:1}],txt:'1 Professeur de chaque type'},
- {id:6,cond:{k:'cities',v:4},disc:[{ci:1}],txt:'Franchir 4 Villes avec tes Voyageurs'},
+ {id:6,cond:{k:'cities',v:5},disc:[{ci:1}],txt:'Franchir 5 Villes avec tes Voyageurs'},
  {id:7,cond:{k:'pe',p:2,e:3},disc:[{ci:1}],txt:'1 Professeur Argent + 1 Émérite Or'},
  {id:8,cond:{k:'pe',p:3,e:2},disc:[{ci:1}],txt:'1 Professeur Or + 1 Émérite Argent'},
  {id:9,cond:{k:'woa2',v:'ARC'},disc:[{c:1}],txt:'2 Architectures (hors Étudiants)'},
@@ -118,11 +118,11 @@ const books=[
  {id:17,cond:{k:'jB'},disc:[{ci:1}],txt:'Parcours B complété + 5 œuvres d\'art'},
  {id:18,cond:{k:'jC'},disc:[{ci:1}],txt:'Parcours C complété + 1 Étudiant de chaque type'},
  {id:19,cond:{k:'woa3'},disc:[{c:1}],txt:'3 œuvres d\'art identiques (Étudiants compris)'},
- {id:20,cond:{k:'lvlN',l:1,n:7},disc:[{i:1}],txt:'7 personnages Bronze'},
+ {id:20,cond:{k:'lvlN',l:1,n:6},disc:[{i:1}],txt:'6 personnages Bronze'},
  {id:21,cond:{k:'lvlN',l:2,n:4},disc:[{i:1}],txt:'4 personnages Argent'},
  {id:22,cond:{k:'lvlN',l:3,n:4},disc:[{i:1}],txt:'4 personnages Or'},
  {id:23,cond:{k:'stu',v:7},disc:[{i:1}],txt:'7 Étudiants'},
- {id:24,cond:{k:'rect23'},disc:[{i:1}],txt:'1 Recteur Argent ou Or'},
+ {id:24,cond:{k:'rect23'},disc:[{i:1}],txt:'1 Recteur Bronze, Argent ou Or'},
 ];
 const rectors=[
  {id:'1a',txt:'Embaucher un Étudiant avec une œuvre d\'art : +1 pièce et +1 influence'},

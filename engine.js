@@ -107,7 +107,7 @@ function bookOk(s,p,bid){
     case 'woa3': { const w=woaList(pl); return Object.values(w.reduce((m,x)=>(m[x]=(m[x]||0)+1,m),{})).some(v=>v>=3); }
     case 'lvlN': return countLvl(pl,c.l)>=c.n;
     case 'stu': return pl.students.length>=c.v;
-    case 'rect23': return !!(pl.rector && CARD[pl.rector.card.id].lvl>=2);
+    case 'rect23': return !!(pl.rector && CARD[pl.rector.card.id].lvl>=1);
   }
   return false;
 }
