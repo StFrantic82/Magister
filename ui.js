@@ -649,7 +649,7 @@ function renderStats(){
 }
 
 // =========== SIMULATIONS ===========
-let simCfg={games:20,players:3,depth:2,countries:[],gens:10,perGen:12,tPlayers:3,rush:true};
+let simCfg={games:50,players:2,depth:2,countries:[],gens:10,perGen:12,tPlayers:2,rush:true};
 let job=null; // {kind, total, done, results:[], log:[], worker}
 function makeWorker(){
   try{ return new Worker('sim-worker.js'); }catch(e){ return null; }
@@ -695,7 +695,7 @@ function renderSim(light){
   // lot
   box.appendChild(el('div',{class:'pcard'},el('h3',{},t('si_batch')),el('p',{class:'muted',style:'margin-top:0'},t('si_batchSub')),
     el('div',{class:'ctrls'},
-      el('label',{},t('si_games'),num('games',1,500)),
+      el('label',{},t('si_games'),el('select',{onchange:e=>{simCfg.games=+e.target.value;}},[50,100,500,1000].map(v=>el('option',{value:v,selected:simCfg.games===v?'':null},String(v))))),
       el('label',{},t('si_players'),seg('players',[[2,'2'],[3,'3'],[4,'4']])),
       el('label',{},t('si_speed'),seg('depth',[[2,t('si_normal')],[1,t('si_fast')]])),
       el('button',{class:'primary',disabled:busy?'':null,onclick:()=>{ simCfg.countries=pickedCountries('#cboxS'); runJob('batch'); }},t('si_run')),
