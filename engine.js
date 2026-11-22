@@ -466,7 +466,7 @@ function finish(s){
 }
 
 // ---------- IA ----------
-const DEFAULT_W={race:0.1,near:0.5,lvl:1.5,vp:10,coin:0.75,infl:0.8,stu:2.2,prof:5,abil:1.2,trig:0.6,emer:10,trav:0.55,journey:2,bookOk:5,book:1.2,emObj:5,woa:0.5,rector:4,opp:3};
+const DEFAULT_W={rprog:0.6,eprog:0.3,race:0.1,near:0.5,lvl:1.5,vp:10,coin:0.75,infl:0.8,stu:2.2,prof:5,abil:1.2,trig:0.6,emer:10,trav:0.55,journey:2,bookOk:5,book:1.2,emObj:5,woa:0.5,rector:10,opp:3};
 let GLOBAL_W=Object.assign({},DEFAULT_W);
 let AI_DEPTH=2;
 function setAIDepth(d){ AI_DEPTH=d; }
@@ -486,6 +486,10 @@ function evalState(s,p){
   D.TYPES.forEach(t=>{ if(pl.emTok[t]===undefined && pl.emer.some(co=>CARD[co.id].type===t) && s.objSlots[t].stack.length) v+=W.emObj; });
   v += woaList(pl).length*W.woa;
   if(pl.rector) v+=W.rector;
+  // progression vers le Recteur : influence épargnée si un Professeur peut y prétendre
+  if(!pl.rector && pl.profs.some(co=>s.rectSlots[CARD[co.id].type])) v+=Math.min(pl.infl,8)*(W.rprog||0);
+  // progression vers l'Émérite : pièces épargnées si un Professeur peut être promu
+  if(pl.profs.length) v+=Math.min(pl.coins,6)*(W.eprog||0);
   let opp=0; s.players.forEach((q,k)=>{ if(k!==p) opp=Math.max(opp,vp(s,k)); }); v-=opp*W.opp;
   return v;
 }
