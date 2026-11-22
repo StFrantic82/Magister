@@ -555,6 +555,31 @@ function sortable(cols,rows,key){
   return el('div',{class:['rects','objs','seats','levels','letters','travel'].includes(key)?'':'scroll'},tb);
 }
 const barCell=(v,max,label)=>el('span',{},label,el('span',{class:'bar',style:'width:'+Math.round((max?v/max:0)*70)+'px'}));
+function loadLib(src){ return new Promise((ok,ko)=>{ if(document.querySelector('script[src="'+src+'"]')) return ok(); const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=ko; document.head.appendChild(s); }); }
+async function exportPDF(){
+  const btn=$('#pdfBtn'); if(btn){ btn.disabled=true; btn.textContent=t('st_pdfWait'); }
+  try{
+    await loadLib('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    await loadLib('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    const node=$('#stats');
+    document.querySelectorAll('#stats .scroll').forEach(x=>{ x.dataset.mh=x.style.maxHeight; x.style.maxHeight='none'; });
+    const canvas=await html2canvas(node,{backgroundColor:'#2a1e14',scale:1.5,useCORS:true,ignoreElements:e=>e.id==='pdfBtn'});
+    document.querySelectorAll('#stats .scroll').forEach(x=>{ x.style.maxHeight=x.dataset.mh||''; });
+    const {jsPDF}=window.jspdf; const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
+    const pw=210, ph=297, m=6, iw=pw-2*m, pxPerMm=canvas.width/iw, sliceH=Math.floor((ph-2*m)*pxPerMm);
+    for(let y=0,pg=0;y<canvas.height;y+=sliceH,pg++){
+      const h=Math.min(sliceH,canvas.height-y); const c=document.createElement('canvas'); c.width=canvas.width; c.height=h;
+      const cx=c.getContext('2d'); cx.fillStyle='#2a1e14'; cx.fillRect(0,0,c.width,h); cx.drawImage(canvas,0,y,canvas.width,h,0,0,canvas.width,h);
+      if(pg) pdf.addPage(); pdf.setFillColor(42,30,20); pdf.rect(0,0,pw,ph,'F');
+      pdf.addImage(c.toDataURL('image/jpeg',0.88),'JPEG',m,m,iw,h/pxPerMm);
+    }
+    const blob=pdf.output('blob'); const name='magister-statistiques-'+new Date().toISOString().slice(0,10)+'.pdf';
+    let done=false;
+    if(window.claude&&window.claude.use){ try{ const dl=await window.claude.use('downloads'); if(dl){ await dl.save({filename:name,data:blob}); done=true; } }catch(e){ if(e&&e.code==='declined') done=true; else console.warn(e); } }
+    if(!done){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },2000); }
+  }catch(e){ console.error(e); alertBox(t('st_pdfErr')); }
+  if(btn){ btn.disabled=false; btn.textContent='⤓ '+t('st_pdf'); }
+}
 function resetStats(){
   zoomShow(el('div',{class:'zt'},el('h3',{},t('st_resetQ')),el('p',{},t('st_resetTxt')),
     el('div',{class:'row-f',style:'justify-content:flex-end'},el('button',{onclick:zoomHide},t('ui_cancel')),
@@ -572,7 +597,8 @@ function renderStats(){
     el('span',{class:'muted',style:'color:#e9d7b0'},STATS.shared?t('st_shared'):t('st_localOnly')),
     el('span',{class:'spacer',style:'flex:1'}),
     el('button',{class:'small',onclick:async()=>{ try{ await navigator.clipboard.writeText(JSON.stringify(games)); alertBox(t('st_copied')); }catch(e){} }},t('st_copy')),
-    el('button',{class:'small',onclick:resetStats},t('st_reset'))));
+    el('button',{class:'small',onclick:resetStats},t('st_reset')),
+    el('button',{class:'small primary',id:'pdfBtn',onclick:exportPDF},'⤓ '+t('st_pdf'))));
   if(STRESET) box.appendChild(el('div',{class:'muted',style:'color:#e9d7b0;margin-top:6px'},t('st_since',new Date(STRESET).toLocaleString(LANG))));
   const games=STATS.all.filter(g=>(stFilter.src==='all'||g.src===stFilter.src)&&(stFilter.n==='all'||g.n===+stFilter.n));
   if(!games.length){ box.appendChild(el('div',{class:'pcard'},el('p',{},t('st_empty')))); return; }
