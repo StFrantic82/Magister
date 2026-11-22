@@ -430,12 +430,13 @@ const TUTO=[
  {k:'s7',vis:()=>[el('img',{src:'book/16.webp',class:'sm'}),el('img',{src:'book/23.webp',class:'sm'}),el('div',{style:'display:flex;gap:6px;flex-wrap:wrap;max-width:180px;justify-content:center'},['c2','i2','book','pai','mus','thea'].map(x=>el('img',{src:'let/'+x+'.webp',style:'width:50px;box-shadow:none'})))]},
  {k:'s8',vis:()=>[el('img',{src:'obj/A1.webp',class:'sm',style:'max-height:140px'}),el('img',{src:'obj/D2.webp',class:'sm',style:'max-height:140px'}),el('div',{style:'display:flex;gap:6px'},el('img',{src:'tok/vp3.webp',style:'width:56px;box-shadow:none'}),el('img',{src:'tok/vp2.webp',style:'width:56px;box-shadow:none'}))]},
 ];
+function richTxt(s){ const IC={A:'t_A',M:'t_M',N:'t_N',R:'t_R',stu:'stu',prof:'prof',emer:'emer',rect:'rect',coin:'coin',infl:'infl'}; return s.split(/(\[[a-zA-Z]+\])/).map(x=>{ const m=x.match(/^\[([a-zA-Z]+)\]$/); return m&&IC[m[1]]?icon(IC[m[1]],22,'margin:0 2px'):x; }); }
 function renderTuto(){
   const box=$('#tuto'); box.innerHTML='';
   const st=TUTO[tutoStep];
   box.appendChild(el('div',{class:'orn'},el('span',{},t('tu_title'))));
   const card=el('div',{class:'pcard'},
-    el('div',{class:'tuto'},el('div',{class:'vis'},st.vis()),el('div',{},el('div',{class:'muted'},t('tu_step',tutoStep+1,TUTO.length)),el('h3',{},t('tu_'+st.k+'_t')),el('p',{},t('tu_'+st.k+'_x')))),
+    el('div',{class:'tuto'},el('div',{class:'vis'},st.vis()),el('div',{},el('div',{class:'muted'},t('tu_step',tutoStep+1,TUTO.length)),el('h3',{},t('tu_'+st.k+'_t')),el('p',{},...richTxt(t('tu_'+st.k+'_x'))))),
     el('div',{class:'dots'},TUTO.map((_,i)=>el('span',{class:i===tutoStep?'on':'',onclick:()=>{tutoStep=i;renderTuto();}}))),
     el('div',{class:'tnav'},
       el('button',{disabled:tutoStep===0?'':null,onclick:()=>{tutoStep--;renderTuto();}},t('tu_prev')),
