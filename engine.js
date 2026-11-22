@@ -125,6 +125,16 @@ function objOk(s,p,tile){
   }
   return false;
 }
+function needs(s,p){
+  const pl=P(s,p); const red=hasRect(pl,'4a')?2:0; let c=0,i=3; // ~3 d'influence pour recruter au tour suivant
+  if(pl.students.length) { c=Math.max(c,3-red); i=Math.max(i,1+1); }
+  if(pl.profs.length) { c=Math.max(c,6-red); i=Math.max(i,2); }
+  if(!pl.rector && pl.profs.some(co=>s.rectSlots[CARD[co.id].type])) { i=Math.max(i,8+1); c=Math.max(c,1); }
+  pl.hand.forEach(b=>{ const k=BOOK[b].cond.k; if(k==='coins') c=Math.max(c,10); if(k==='infl') i=Math.max(i,10); });
+  D.TYPES.forEach(t=>{ const o=s.objSlots[t]; if(o.tile==='B1' && pl.emTok[t]===undefined && o.stack.length){ c=Math.max(c,6); i=Math.max(i,6); } });
+  if(hasRect(pl,'2b')){ const m=c+i; return {c:m,i:m}; }
+  return {c,i};
+}
 function objProgress(s,p,tile){
   const pl=P(s,p), cap=x=>Math.max(0,Math.min(1,x));
   switch(tile){
@@ -529,8 +539,10 @@ function evalState(s,p){
   let v = myvp*W.vp + (W.race||0)*myvp*myvp;
   // potentiel de PV à court terme (course) : Livres jouables, objectifs Émérites à portée
   v += (W.near||0)*(pl.hand.filter(b=>bookOk(s,p,b)).length + D.TYPES.filter(t=>pl.emTok[t]===undefined && s.objSlots[t].stack.length && objOk(s,p,s.objSlots[t].tile)).length);
-  const sat=(x,k)=>Math.min(x,k)+Math.max(0,x-k)*(W.over===undefined?1:W.over);
-  v += sat(Math.min(pl.coins,14),W.capC||8)*W.coin + sat(Math.min(pl.infl,14),W.capI||10)*W.infl;
+  // réserves : pleine valeur jusqu'au besoin réel (promotions, Recteur, Livres, objectif), faible au-delà
+  const need=needs(s,p);
+  const sat=(x,k)=>Math.min(x,k)+Math.max(0,x-k)*(W.over===undefined?0.15:W.over);
+  v += sat(Math.min(pl.coins,16),need.c)*W.coin + sat(Math.min(pl.infl,16),need.i)*W.infl;
   v += chars(pl).reduce((a,co)=>a+CARD[co.id].lvl*(W.lvl||0),0);
   v += pl.students.length*W.stu + pl.profs.reduce((a,co)=>a+W.prof+CARD[co.id].A.length*W.abil+CARD[co.id].trig.length*W.trig,0) + pl.emer.length*W.emer;
   v += pl.trav.reduce((a,x)=>a+x*W.trav+(x>=12?W.journey:0),0);
