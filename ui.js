@@ -227,7 +227,7 @@ function render(){
     const box=el('div',{class:'tslot t-'+ty});
     if(id){ const im=el('img',{src:'rect/'+id+'.webp',alt:''}); im.onclick=()=>zoomImg('rect/'+id+'.webp',t('ui_rectorOf',TN(ty)),t('ui_rectCost',t('R_'+id))); box.appendChild(im); }
     else box.appendChild(el('img',{src:'rect/back.webp',alt:''}));
-    box.appendChild(el('div',{},el('b',{},icon('t_'+ty,22,'margin-right:5px'),TN(ty)),el('br'),id?t('R_'+id):t('ui_takenBy',owner?owner.name:'?')));
+    box.appendChild(el('div',{},el('b',{},icon('t_'+ty,22,'margin-right:5px;width:22px;cursor:default'),TN(ty)),el('br'),id?t('R_'+id):t('ui_takenBy',owner?owner.name:'?')));
     rs.appendChild(box);
   });
   // objectifs
@@ -235,7 +235,7 @@ function render(){
   ['N','R','A','M'].forEach(ty=>{
     const o=S.objSlots[ty]; const who=S.players.filter(pl=>pl.emTok[ty]!==undefined).map(pl=>pl.name+' ('+pl.emTok[ty]+')');
     const im=el('img',{src:'obj/'+o.tile+'.webp',alt:''}); im.onclick=()=>zoomImg('obj/'+o.tile+'.webp',t('ui_objOf',TN(ty)),t('ui_objTxt',t('O_'+o.tile),TN(ty)));
-    os.appendChild(el('div',{class:'tslot t-'+ty},im,el('div',{},el('b',{},icon('t_'+ty,22,'margin-right:5px'),TN(ty)),el('br'),t('O_'+o.tile),
+    os.appendChild(el('div',{class:'tslot t-'+ty},im,el('div',{},el('b',{},icon('t_'+ty,22,'margin-right:5px;width:22px;cursor:default'),TN(ty)),el('br'),t('O_'+o.tile),
       el('div',{class:'vps'},o.stack.map(v=>el('img',{src:'tok/vp'+v+'.webp',alt:v+' '+t('ui_vp')}))), who.length?el('div',{class:'muted'},t('ui_claimed',who.join(', '))):null)));
   });
   // lettres & jetons
