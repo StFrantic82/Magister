@@ -255,7 +255,7 @@ function renderTabs(sel){
   const vpB=[]; if(pl.played.length) vpB.push(t('ui_vpBooks',pl.played.length)); Object.entries(pl.emTok).forEach(([ty,v])=>vpB.push(t('ui_vpEm',v,TN(ty)))); if(pl.rector) vpB.push(t('ui_vpRect')); if(pl.bologna) vpB.push(t('ui_vpBol',pl.bologna)); if(pl.constTok.length) vpB.push(t('ui_vpConst',pl.constTok.length));
   u.appendChild(el('div',{class:'res'},
     el('span',{},el('span',{class:'coin'},pl.coins),t('ui_coins')), el('span',{},el('span',{class:'seal'},pl.infl),t('ui_infl')),
-    el('span',{},'🏛 '+E.vp(S,tab)+' '+t('ui_vp')+(vpB.length?' ('+vpB.join(', ')+')':'')),
+    el('span',{},icon('laurel',20,'margin-right:4px'),E.vp(S,tab)+' '+t('ui_vp')+(vpB.length?' ('+vpB.join(', ')+')':'')),
     el('span',{},icon('trav',20,'margin-right:4px'),pl.trav.map((x,i)=>E.TR[i]+':'+x).join(' ')+' · '+pl.cities+' '+t('ui_cities')),
     E.wild(pl)?el('span',{},t('ui_wild')):null));
   const rowEl=(label,arr,extra)=>{
