@@ -211,7 +211,7 @@ function render(){
     const line=el('div',{class:'track'},el('div',{class:'lab'},el('img',{src:'tok/country_'+COUNTRY_IMG[cn]+'.webp',alt:''}),el('span',{},el('b',{},E.TR[ti]+' '),t('C_'+cn))));
     for(let n=0;n<=12;n++){
       const cy=C.cities.find(c=>c[0]===n);
-      const cell=el('div',{class:'cell'+(cy?' city':' plain')+(n===12?' finish':''),title:cy?t('CY_'+cy[1])+' : '+t('CE_'+cy[1]):t('ui_cell',n)});
+      const cell=el('div',{class:'cell'+(cy?' city':'')+(n===12?' finish':''),title:cy?t('CY_'+cy[1])+' : '+t('CE_'+cy[1]):t('ui_cell',n)});
       if(moveOpt[ti]!==undefined && n===mePl.trav[ti]+1){ cell.classList.add('target'); const k=moveOpt[ti]; cell.addEventListener('click',ev=>{ ev.stopImmediatePropagation(); act(k); }); }
       if(cy){ cell.style.backgroundImage='url(city/'+cy[1]+'.webp)'; cell.addEventListener('click',()=>zoomImg('city/'+cy[1]+'.webp',t('CY_'+cy[1])+' ('+n+')',t('CE_'+cy[1]))); }
       else cell.appendChild(el('span',{class:'n'},n||'⚑'));
