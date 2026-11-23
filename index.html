@@ -278,6 +278,14 @@ button.small{padding:3px 10px;font-size:14px}
 .endbox td,.endbox th{padding:4px 10px;border-bottom:1px solid var(--line)}
 .code{font-family:monospace;font-size:22px;letter-spacing:3px;background:#fffaf0;border:1px dashed var(--deep);padding:2px 10px;border-radius:6px}
 .note{background:#fff4d6;border-left:4px solid var(--gold);padding:6px 10px;border-radius:4px;font-size:14px}
+.travelp{position:relative;isolation:isolate}
+.travelp::before{content:"";position:absolute;inset:0;background:url(tok/map.webp) center/cover no-repeat;opacity:.22;border-radius:inherit;z-index:-1;pointer-events:none}
+.travelp .cell{background:rgba(239,225,191,.62)}
+.travelp::before{opacity:.32}
+.slot::before{content:"";position:absolute;left:-9px;right:-9px;top:-34px;bottom:-8px;background:url(tok/arch.webp) center/100% 100% no-repeat;opacity:.38;border-radius:6px;pointer-events:none;z-index:0}
+.slot>*{position:relative;z-index:1}
+.slot>.cost{position:absolute;z-index:2}
+.rowwrap{gap:20px;padding-top:30px;padding-left:4px;padding-right:10px}
 </style>
 </head>
 <body>
@@ -351,7 +359,7 @@ button.small{padding:3px 10px;font-size:14px}
       <div class="sec"><span data-i18n="ui_row"></span> <span class="muted" style="font-family:'EB Garamond'" data-i18n="ui_rowSub"></span></div>
       <div class="rowwrap" id="row"></div>
     </div>
-    <div class="panel"><div class="sec" data-i18n="ui_travel"></div><div class="tracks" id="tracks"></div></div>
+    <div class="panel travelp"><div class="sec" data-i18n="ui_travel"></div><div class="tracks" id="tracks"></div></div>
     <div class="panel"><div class="sec" data-i18n="ui_unis"></div><div class="tabs" id="tabs"></div><div class="uni" id="uni"></div></div>
   </div>
   <div class="side">
