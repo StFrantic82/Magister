@@ -52,7 +52,7 @@ function effsTxt(a){ return PLUS(a.map(effTxt)); }
 function newGame(opts){
   const s = {v:2, rng:(opts.seed>>>0)||((Math.random()*2**32)>>>0), log:[], stack:[], pending:null, over:false, ver:0, uidc:0};
   const n = opts.players.length;
-  s.players = opts.players.map((p,k)=>({name:p.name, ai:!!p.ai, uid:p.uid||null, color:p.color||COLORS[k], coins:0, infl:0, hand:[], played:[],
+  s.players = opts.players.map((p,k)=>({name:p.name, ai:!!p.ai, lvl:p.ai?(p.lvl||3):undefined, uid:p.uid||null, color:p.color||COLORS[k], coins:0, infl:0, hand:[], played:[],
     students:[], profs:[], emer:[], rector:null, virt:null, trav:[0,0,0], emTok:{}, bologna:0, constTok:[], cities:0, w:p.w||null,
     hires:[], citiesK:[], promos:{S:0,E:0,R:0}, booksTurn:[]}));
   const cs = opts.countries && opts.countries.length===3 ? opts.countries.slice() : shuffle(s,['ITA','FRA','ENG','POR','SPA','GER','BYZ','MOR','SLK']).slice(0,3);
@@ -585,7 +585,7 @@ function summary(s,src){
   return {t:Date.now(),src,n,cs:s.tracks.slice(),vpr:s.vpRounds||[],deckOut:!!s.deckOut,turns:s.turnNo,rounds:Math.round(s.turnNo/n*10)/10,start:s.start,
     rects:Object.assign({},s.rectSlotsInit||{}),objs:Object.fromEntries(Object.entries(s.objSlots).map(([k,o])=>[k,o.tile])),
     players:s.players.map((pl,k)=>{ const r=s.ranking.findIndex(x=>x.k===k);
-      return {seat:k,ai:pl.ai,vp:vp(s,k),rank:r+1,win:s.winners.includes(k),start:pl.start||[],g:pl.g||{},first:pl.first||{},nAct:pl.nAct||0,nPromo:pl.nPromo||0,slots:pl.hireSlot||[],letters:pl.lettersK||[],trav:pl.trav.slice(),hires:pl.hires||[],hcost:pl.hireCost||[],
+      return {seat:k,ai:pl.ai,lvl:pl.ai?(pl.lvl||3):undefined,vp:vp(s,k),rank:r+1,win:s.winners.includes(k),start:pl.start||[],g:pl.g||{},first:pl.first||{},nAct:pl.nAct||0,nPromo:pl.nPromo||0,slots:pl.hireSlot||[],letters:pl.lettersK||[],trav:pl.trav.slice(),hires:pl.hires||[],hcost:pl.hireCost||[],
         fin:{s:pl.students.map(c=>c.id),p:pl.profs.map(c=>c.id),e:pl.emer.map(c=>c.id),r:pl.rector?pl.rector.card.id:null},
         rect:pl.rector?pl.rector.tile:null,books:pl.played.slice(),em:Object.assign({},pl.emTok),bol:pl.bologna,cst:pl.constTok.length,
         cities:pl.citiesK||[],j:journeys(pl),coins:pl.coins,infl:pl.infl,promos:pl.promos||{S:0,E:0,R:0}}; })};
@@ -696,7 +696,23 @@ function aiPlan(s){
   }
   return best;
 }
+const LVL={1:{mist:0.55,noise:0.8,rand:0.15},2:{mist:0.22,noise:0.5,rand:0.05}};
 function aiChoose(s,depth){
+  const pd=s.pending, pl=pd&&s.players[pd.p], lv=(pl&&pl.lvl)||3;
+  if(depth||lv>=3||!LVL[lv]||Math.random()>=LVL[lv].mist) return aiChooseHard(s,depth);
+  return aiChooseWeak(s,LVL[lv]);
+}
+function aiChooseWeak(s,cfg){
+  const pd=s.pending, p=pd.p, n=pd.opts.length;
+  if(n<=1) return 0;
+  if(Math.random()<cfg.rand) return Math.floor(Math.random()*n);
+  const sc=pd.opts.map((o,k)=>{ const c=clone(s); choose(c,k); return evalState(c,p); });
+  const m=sc.reduce((a,b)=>a+b,0)/n, sd=Math.sqrt(sc.reduce((a,b)=>a+(b-m)*(b-m),0)/n)||1;
+  const g=()=>{ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
+  let best=0,bv=-Infinity; sc.forEach((x,k)=>{ const y=x+cfg.noise*sd*g(); if(y>bv){bv=y;best=k;} });
+  return best;
+}
+function aiChooseHard(s,depth){
   const pd=s.pending;
   if(PLAN.on && pd.kind==='turn' && pd.opts.length>1 && !depth) return aiPlan(s);
   if(!MC.on || !MC_KINDS[pd.kind] || pd.opts.length<2) return aiChooseGreedy(s,depth);

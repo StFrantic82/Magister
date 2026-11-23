@@ -46,16 +46,20 @@ function renderSeats(){
   const box=$('#localSeats'); box.innerHTML='';
   document.querySelectorAll('#nSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.n===seats.length));
   seats.forEach((s,k)=>{
+    if(s.ai&&!s.lvl) s.lvl=defLvl();
     if(!s.color||seats.some((o,j)=>j<k&&o.color===s.color)) s.color=PALETTE.find(c=>!seats.some((o,j)=>j!==k&&o.color===c));
     box.appendChild(el('div',{class:'pseat'},
       el('button',{class:'tok',title:t('ui_color'),style:'background:'+s.color+';color:'+tokTxt(s.color),onclick:()=>{ palOpen=palOpen===k?-1:k; renderSeats(); }},k+1),
       el('input',{value:s.name,placeholder:k===0?t('ui_me'):t('ui_player1')+' '+(k+1),maxlength:18,oninput:e=>{s.name=e.target.value;}}),
       el('div',{class:'tog'},
         el('button',{class:s.ai?'':'on',onclick:()=>{ if(s.ai){ s.ai=false; if(/\(IA\)/.test(s.name)) s.name=''; renderSeats(); } }},t('ui_human')),
-        el('button',{class:s.ai?'on':'',onclick:()=>{ if(!s.ai){ s.ai=true; if(!s.name) s.name=AINAMES[Math.max(0,k-1)]||'IA'; renderSeats(); } }},t('ui_ai')))));
+        el('button',{class:s.ai?'on':'',onclick:()=>{ if(!s.ai){ s.ai=true; if(!s.name) s.name=AINAMES[Math.max(0,k-1)]||'IA'; renderSeats(); } }},t('ui_ai'))),
+      s.ai?lvlTog(s.lvl||defLvl(),v=>{ s.lvl=v; store.set('mag_ailvl',v); renderSeats(); }):null));
     if(palOpen===k) box.appendChild(colorRow(s.color,seats.filter((o,j)=>j!==k).map(o=>o.color),c=>{ s.color=c; palOpen=-1; renderSeats(); }));
   });
 }
+function defLvl(){ return +(store.get('mag_ailvl')||3); }
+function lvlTog(cur,set){ return el('div',{class:'tog lvl',title:t('ui_lvl')},[1,2,3].map(v=>el('button',{class:cur===v?'on':'',onclick:()=>set(v)},t('ui_lvl'+v)))); }
 function colorRow(cur,taken,pick){
   return el('div',{class:'pal'},PALETTE.map(c=>el('button',{class:c===cur?'on':'',style:'background:'+c,disabled:taken.includes(c)?'':null,title:c,onclick:()=>pick(c)})));
 }
@@ -88,7 +92,7 @@ $('#startLocal').onclick=()=>{
   const cs=pickedCountries('#cboxL');
   if(cs.length && cs.length!==3){ alertBox(t('ui_pick3')); return; }
   if(seats[0].name) store.set('mag_name',seats[0].name);
-  S=E.newGame({players:seats.map((s,k)=>({name:s.name||(k===0?t('ui_me'):t('ui_player1')+' '+(k+1)),ai:s.ai,color:s.color})),countries:cs.length?cs:null,seed:(Math.random()*2**32)>>>0});
+  S=E.newGame({players:seats.map((s,k)=>({name:s.name||(k===0?t('ui_me'):t('ui_player1')+' '+(k+1)),ai:s.ai,lvl:s.ai?(s.lvl||defLvl()):undefined,color:s.color})),countries:cs.length?cs:null,seed:(Math.random()*2**32)>>>0});
   startLocal();
 };
 $('#resumeLocal').onclick=()=>{ try{ S=JSON.parse(store.get('mag_local')); if(S.v!==2) throw 0; startLocal(); }catch(e){ store.del('mag_local'); checkResume(); } };
@@ -393,12 +397,13 @@ function renderTable(){
   const host=table.host===myUid;
   b.appendChild(el('div',{},t('ui_code'),el('span',{class:'code'},table.code),' ',el('span',{class:'muted'},t('ui_shareCode'))));
   table.seats.forEach((s,k)=>{ const mine=s.uid===myUid||(host&&s.ai); const col=s.color||SEATCOL[k]; b.appendChild(el('div',{class:'seat'},el(mine?'button':'span',{class:'dot',style:'background:'+col+(mine?';width:22px;height:22px;cursor:pointer;padding:0':''),title:mine?t('ui_color'):null,onclick:mine?()=>{ palOpen=palOpen===100+k?-1:100+k; renderTable(); }:null}),s.name+(s.ai?t('ui_aiTag'):'')+(s.uid===table.host?t('ui_hostTag'):'')+(s.uid===myUid?t('ui_you'):''),
+    s.ai?(host&&table.status==='lobby'?lvlTog(s.lvl||3,async v=>{ store.set('mag_ailvl',v); await db.doc('tables/'+table.code).update({seats:table.seats.map((o,j)=>j===k?Object.assign({},o,{lvl:v}):o)}); }):el('span',{class:'muted'},' · '+t('ui_lvl'+(s.lvl||3)))):null,
     host&&k>0?el('button',{class:'small',onclick:async()=>{ await db.doc('tables/'+table.code).update({seats:table.seats.filter((_,j)=>j!==k)}); }},t('ui_remove')):null));
     if(palOpen===100+k && table.status==='lobby') b.appendChild(colorRow(col,table.seats.filter((o,j)=>j!==k).map((o,j)=>o.color||SEATCOL[j]),async c=>{ palOpen=-1; const ns=table.seats.map((o,j)=>j===k?Object.assign({},o,{color:c}):o); await db.doc('tables/'+table.code).update({seats:ns}); })); });
   if(table.status==='lobby'){
     if(host){
       b.appendChild(el('div',{class:'row-f',style:'margin-top:6px'},
-        el('button',{disabled:table.seats.length>=4?'':null,onclick:async()=>{ const n=AINAMES.find(x=>!table.seats.some(s=>s.name===x))||'IA'; await db.doc('tables/'+table.code).update({seats:[...table.seats,{name:n,uid:null,ai:true}]}); }},t('ui_addAI')),
+        el('button',{disabled:table.seats.length>=4?'':null,onclick:async()=>{ const n=AINAMES.find(x=>!table.seats.some(s=>s.name===x))||'IA'; await db.doc('tables/'+table.code).update({seats:[...table.seats,{name:n,uid:null,ai:true,lvl:defLvl()}]}); }},t('ui_addAI')),
         el('button',{class:'primary',disabled:table.seats.length<2?'':null,onclick:startOnline},t('ui_start'))));
       b.appendChild(el('div',{style:'margin-top:8px'},el('div',{class:'flab row-f',style:'justify-content:space-between'},el('span',{},t('ui_tracks')),el('button',{class:'dice',onclick:()=>randomCountries('#cboxO')},el('span',{class:'die'},'⚄'),el('span',{},t('ui_random')))),el('div',{class:'muted'},t('ui_tracksSub')),el('div',{class:'cbox',id:'cboxO'})));
       countryBoxes('#cboxO');
@@ -408,7 +413,7 @@ function renderTable(){
 async function startOnline(){
   const cs=pickedCountries('#cboxO');
   if(cs.length && cs.length!==3){ $('#onlineMsg').textContent=t('ui_pick3'); return; }
-  const st=E.newGame({players:table.seats.map((s,k)=>({name:s.name,ai:s.ai,uid:s.uid,color:s.color||SEATCOL[k]})),countries:cs.length?cs:null,seed:(Math.random()*2**32)>>>0});
+  const st=E.newGame({players:table.seats.map((s,k)=>({name:s.name,ai:s.ai,lvl:s.ai?(s.lvl||3):undefined,uid:s.uid,color:s.color||SEATCOL[k]})),countries:cs.length?cs:null,seed:(Math.random()*2**32)>>>0});
   st.ver=1;
   await db.doc('tables/'+table.code).update({status:'play',state:JSON.stringify(st),rev:1});
 }
