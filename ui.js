@@ -257,6 +257,7 @@ function renderTabs(sel){
     el('span',{},el('span',{class:'coin'},pl.coins),t('ui_coins')), el('span',{},el('span',{class:'seal'},pl.infl),t('ui_infl')),
     el('span',{},icon('laurel',20,'margin-right:4px'),E.vp(S,tab)+' '+t('ui_vp')+(vpB.length?' ('+vpB.join(', ')+')':'')),
     el('span',{},icon('trav',20,'margin-right:4px'),pl.trav.map((x,i)=>E.TR[i]+':'+x).join(' ')+' · '+pl.cities+' '+t('ui_cities')),
+    (()=>{ const wl=E.woaList(pl), cnt={}; wl.forEach(w=>cnt[w]=(cnt[w]||0)+1); return el('span',{class:'woas'},['ARC','MUS','PAI','SCU','THE'].map(w=>el('span',{title:WN(w),style:'margin-right:8px;white-space:nowrap'+(cnt[w]?'':';opacity:.4')},icon('w_'+w,20,'margin-right:2px'),String(cnt[w]||0))),'('+wl.length+')'); })(),
     E.wild(pl)?el('span',{},t('ui_wild')):null));
   const rowEl=(label,arr,extra)=>{
     const cs=el('div',{class:'ucards'});
