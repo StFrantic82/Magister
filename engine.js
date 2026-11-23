@@ -280,6 +280,7 @@ function step(s,t){
   case 'hire': return hire(s,p,t.slot,t.free);
   case 'choice': {
     const c=CARD[t.id]; if(!c.act) return;
+    if(c.act!=='any' && !promoOptions(s,p).length){ s.stack.push({k:'activate',p,type:c.act}); pl.nAct=(pl.nAct||0)+1; return; }
     const opts=[];
     (c.act==='any'?D.TYPES:[c.act]).forEach(ty=>opts.push({label:M('o_activate',TY(ty)),act:ty}));
     opts.push(promoOptions(s,p).length?{label:M('o_promote'),promo:1}:{label:M('o_promoteNone'),none:1});
