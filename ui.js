@@ -676,9 +676,9 @@ function renderStats(){
     // --- Comparaison vainqueurs / moyenne / perdants
     const gm=[['sx_gCoins',p=>(p.g||{}).c||0],['sx_gInfl',p=>(p.g||{}).i||0],['sx_gMoves',p=>(p.g||{}).t||0],['sx_gCities',p=>(p.cities||[]).length],['sx_gJourneys',p=>p.j||0],
       ['sx_gDrawn',p=>(p.g||{}).b||0],['sx_gPlayed',p=>p.books.length],['sx_gLetters',p=>(p.letters||[]).length],['sx_gHires',p=>p.hires.length],['sx_gPaid',p=>(p.hcost||[]).reduce((a,b)=>a+b,0)],
-      ['sx_gAct',p=>p.nAct||0],['sx_gPromoChoice',p=>p.nPromo||0],['sx_gProf',p=>(p.promos||{}).S||0],['sx_gEmer',p=>(p.promos||{}).E||0],['sx_gRect',p=>p.rect?1:0],['sx_gLeft',p=>(p.coins||0)+(p.infl||0)],['sx_gVP',p=>p.vp]];
+      ['sx_gAct',p=>p.nAct||0],['sx_gPromoChoice',p=>p.nPromo||0],['sx_gProf',p=>(p.promos||{}).S||0],['sx_gEmer',p=>(p.promos||{}).E||0],['sx_gRect',p=>p.rect?1:0],['sx_gLeftC',p=>p.coins||0],['sx_gLeftI',p=>p.infl||0],['sx_gVP',p=>p.vp]];
     const gRows=gm.map(([k,f])=>{ const w=mean(W.map(x=>f(x.p))), a=mean(AP.map(x=>f(x.p))), l=mean(L.map(x=>f(x.p))); const d=l?Math.round((w-l)/l*100):null;
-      const GI={sx_gCoins:['coin'],sx_gInfl:['infl'],sx_gMoves:['trav'],sx_gJourneys:['trav_a'],sx_gDrawn:['book'],sx_gPlayed:['book'],sx_gLetters:['letter'],sx_gHires:['stu'],sx_gPaid:['infl'],sx_gPromoChoice:['promo'],sx_gProf:['prof'],sx_gEmer:['emer'],sx_gRect:['rect'],sx_gLeft:['coin','infl'],sx_gVP:['laurel']};
+      const GI={sx_gCoins:['coin'],sx_gInfl:['infl'],sx_gMoves:['trav'],sx_gJourneys:['trav_a'],sx_gDrawn:['book'],sx_gPlayed:['book'],sx_gLetters:['letter'],sx_gHires:['stu'],sx_gPaid:['infl'],sx_gPromoChoice:['promo'],sx_gProf:['prof'],sx_gEmer:['emer'],sx_gRect:['rect'],sx_gLeftC:['coin'],sx_gLeftI:['infl'],sx_gVP:['laurel']};
       return el('tr',{},el('td',{},el('span',{style:'display:inline-block;width:46px;text-align:center'},(GI[k]||[]).map(n=>icon(n,20,'margin:0 1px'))),t(k)),el('td',{class:'num',style:'font-weight:700;color:var(--wine2)'},f1(w)),el('td',{class:'num'},f1(a)),el('td',{class:'num'},f1(l)),
         el('td',{class:'num',style:'color:'+(d===null?'inherit':d>=10?'#1f5a1a':d<=-10?'#8e1f1f':'inherit')},d===null?'—':(d>0?'+':'')+d+' %')); });
     box.appendChild(el('div',{class:'pcard'},el('h3',{},t('sx_compare')),el('div',{class:'muted',style:'margin-bottom:6px'},t('sx_compareNote')),
@@ -768,8 +768,8 @@ function renderStats(){
       {h:t('st_taken'),num:1,f:r=>r.app?r.n/r.app:-1,r:r=>el('span',{},pct(r.n,r.app))},
       {h:t('st_takenWin'),num:1,f:r=>r.n?r.w/r.n:-1,r:r=>el('span',{},pct(r.w,r.n))}],Object.values(rs),'rects'))));
   // objectifs + pays + villes
-  const os={}; ['A1','A2','B1','B2','C1','C2','D1','D2'].forEach(o=>os[o]={id:o,app:0,n:0,w:0,rc:[],gp:[]});
-  games.forEach(g=>{ Object.entries(g.objs||{}).forEach(([ty,o])=>{ os[o].app++; const cl=g.players.filter(p=>p.em[ty]!==undefined), k=cl.length; os[o].n+=k; os[o].w+=cl.filter(p=>p.win).length; cl.forEach(p=>{ if(p.g) os[o].gp.push(p.g); }); if(k) os[o].rc.push(g.rounds); }); });
+  const os={}; ['A1','A2','B1','B2','C1','C2','D1','D2'].forEach(o=>os[o]={id:o,app:0,n:0,w:0,rc:[]});
+  games.forEach(g=>{ Object.entries(g.objs||{}).forEach(([ty,o])=>{ os[o].app++; const cl=g.players.filter(p=>p.em[ty]!==undefined), k=cl.length; os[o].n+=k; os[o].w+=cl.filter(p=>p.win).length; if(k) os[o].rc.push(g.rounds); }); });
   const ct={}; Object.keys(D.countries).forEach(c=>ct[c]={id:c,n:0,r:[]});
   games.forEach(g=>g.cs.forEach(c=>{ if(ct[c]){ ct[c].n++; ct[c].r.push(g.rounds); } }));
   const cy={}; Object.entries(D.countries).forEach(([c,C])=>C.cities.forEach(x=>cy[x[1]]={k:x[1],c,app:0,n:0}));
@@ -783,22 +783,6 @@ function renderStats(){
       {h:t('st_country'),f:r=>t('C_'+r.id),r:r=>el('span',{},el('img',{class:'th',src:'tok/country_'+COUNTRY_IMG[r.id]+'.webp',style:'width:22px'}),t('C_'+r.id))},
       {h:t('st_games'),num:1,f:r=>r.n},
       {h:t('st_rounds'),num:1,f:r=>avg(r.r),r:r=>el('span',{},r.r.length?avg(r.r).toFixed(1):'—')}],Object.values(ct),'countries'))));
-  { const GP=[],GW=[],GL=[]; games.forEach(g=>g.players.forEach(p=>{ if(!p.g) return; GP.push(p.g); (p.win?GW:GL).push(p.g); }));
-    const rm=(arr,k)=>arr.length?arr.reduce((s,x)=>s+(k?(x[k]||0):((x.c||0)+(x.i||0)+(x.t||0))),0)/arr.length:0;
-    if(GP.length){ const ref=[[t('sx_avg'),GP],[t('sx_winners'),GW],[t('sx_losers'),GL]];
-      const ratio=(r,R)=>{ const a=rm(r.gp), b=rm(R); if(!r.gp.length||!b) return el('span',{},'—'); const x=a/b; return el('span',{style:'color:'+(x>=1.05?'var(--good,#2e7d32)':x<=0.95?'var(--bad,#b23)':'inherit')},'×'+x.toFixed(2)); };
-      const v=(r,k)=>r.gp.length?rm(r.gp,k):-1, vs=(r,k)=>el('span',{},r.gp.length?rm(r.gp,k).toFixed(1):'—');
-      box.appendChild(el('div',{class:'pcard'},el('h3',{},t('sx_objRes')),
-        el('p',{class:'muted',style:'margin:0 0 8px'},t('sx_objResNote')+' '+ref.map(([l,R])=>l+' : '+rm(R,'c').toFixed(1)+' / '+rm(R,'i').toFixed(1)+' / '+rm(R,'t').toFixed(1)).join(' · ')),
-        sortable([
-        {h:t('st_obj'),f:r=>t('O_'+r.id),r:r=>el('span',{},el('img',{class:'th',src:'obj/'+r.id+'.webp'}),t('O_'+r.id))},
-        {h:t('sx_gCoins'),num:1,f:r=>v(r,'c'),r:r=>vs(r,'c')},
-        {h:t('sx_gInfl'),num:1,f:r=>v(r,'i'),r:r=>vs(r,'i')},
-        {h:t('sx_gMoves'),num:1,f:r=>v(r,'t'),r:r=>vs(r,'t')},
-        {h:t('sx_total'),num:1,f:r=>v(r,0),r:r=>vs(r,0)},
-        {h:t('sx_vsAvg'),num:1,f:r=>r.gp.length?rm(r.gp)/(rm(GP)||1):-1,r:r=>ratio(r,GP)},
-        {h:t('sx_vsW'),num:1,f:r=>r.gp.length?rm(r.gp)/(rm(GW)||1):-1,r:r=>ratio(r,GW)},
-        {h:t('sx_vsL'),num:1,f:r=>r.gp.length?rm(r.gp)/(rm(GL)||1):-1,r:r=>ratio(r,GL)}],Object.values(os),'objres'))); } }
   box.appendChild(el('div',{class:'pcard'},el('h3',{},t('st_cities')),sortable([
       {h:t('st_city'),f:r=>t('CY_'+r.k),r:r=>el('span',{},el('img',{class:'th',src:'city/'+r.k+'.webp'}),t('CY_'+r.k),el('span',{class:'muted'},' — '+t('C_'+r.c)))},
       {h:t('st_games'),num:1,f:r=>r.app},
