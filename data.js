@@ -133,7 +133,7 @@ const rectors=[
  {id:'3b',txt:'Compte comme un personnage supplémentaire du type et du niveau de ton choix'},
  {id:'4a',txt:'Promotion : coût en pièces réduit de 2'},
  {id:'4b',txt:'Embauche : coût en influence réduit de 2'},
- {id:'5a',txt:'Prends gratuitement un Étudiant de la rangée : applique son effet immédiat, sans Activation ni Promotion'},
+ {id:'5a',txt:'Recrute un Étudiant de la rangée en payant son coût : applique son effet immédiat, sans Activation ni Promotion'},
  {id:'5b',txt:'5 déplacements + 1 promotion (en payant son coût)'},
 ];
 const objectives={

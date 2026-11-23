@@ -312,7 +312,7 @@ function step(s,t){
   case 'fes': {
     const opts=[]; s.row.forEach((co,k)=>{ if(co && canPay(pl,0,hireCost(s,p,k))) opts.push({label:M('o_fes',cn(co.id),hireCost(s,p,k)),slot:k,cards:[co.id]}); });
     if(!opts.length) return;
-    ask(s,p,'fes',M('q_fes',pn(s,p)),opts,t); return; }
+    ask(s,p,'fes',t.noAct?M('q_rect5a',pn(s,p)):M('q_fes',pn(s,p)),opts,t); return; }
   case 'const': {
     const opts=[]; s.constTok.forEach((ty,k)=>pl.emer.forEach((co,j)=>{ if(CARD[co.id].type===ty) opts.push({label:M('o_const',cn(co.id),TY(ty)),tok:k,idx:j,cards:[co.id]}); }));
     if(!opts.length){ log(s,M('log_noConst',pn(s,p))); return; }
@@ -382,7 +382,7 @@ function resolve(s,pd,o){
   case 'meknes': pushSeq(s,p,CARD[o.id].A); log(s,M('log_meknes',pl.name,cn(o.id))); return;
   case 'beijing': { if(t.left>1) s.stack.push({k:'beijing',p,left:t.left-1,used:t.used.concat([o.key])}); log(s,M('log_beijing',pl.name,CY(o.key))); cityEff(s,p,o.key); return; }
   case 'sale': if(!o.pass){ const [co]=pl.students.splice(o.idx,1); log(s,M('log_sale',pl.name,cn(co.id))); } return;
-  case 'fes': s.stack.push({k:'hire',p,slot:o.slot,free:false}); return;
+  case 'fes': s.stack.push({k:'hire',p,slot:o.slot,free:false,noAct:!!t.noAct}); return;
   case 'const': if(!o.pass){ const ty=s.constTok.splice(o.tok,1)[0]; const [co]=pl.emer.splice(o.idx,1); pl.profs.push(co); pl.constTok.push(ty); log(s,M('log_const',pl.name,cn(co.id))); } return;
   case 'turn': case 'end': return turnAction(s,p,o,pd.kind);
   }
@@ -445,7 +445,7 @@ function doPromo(s,p,to,idx,free){
     if(!free) pay(pl,Math.max(0,idx+1-red),8); pl.profs.splice(idx,1); pl.rector={card:co,tile,type:ty}; s.rectSlots[ty]=null;
     log(s,M('log_rector',pl.name,cn(co.id),M('R_'+tile)));
     if(tile==='2b') drawBooks(s,p,1);
-    if(tile==='5a') s.stack.push({k:'take',p,max:6,noAct:true});
+    if(tile==='5a') s.stack.push({k:'fes',p,noAct:true});
     if(tile==='5b'){ s.stack.push({k:'promo',p}); s.stack.push({k:'move',p,n:5}); }
   }
 }
