@@ -139,6 +139,7 @@ async function undo(){
   try{ await db.doc('tables/'+table.code).update({state:JSON.stringify(prev),rev:prev.ver}); }catch(e){ alertBox(t('ui_writeErr',e.code||e.message)); }
 }
 function hasRect2a(pl){ return pl.rector&&pl.rector.tile==='2a'; }
+document.addEventListener('click',function bkOutside(){ document.querySelectorAll('.bk.open').forEach(x=>x.classList.remove('open')); });
 async function bookAct(type,hk){
   if(busy||!S) return;
   const p=S.pending&&S.pending.p; if(!isMine(p)) return;
@@ -174,7 +175,7 @@ function zoomCard(id){
   const then = c.act ? (c.act==='any'?t('ui_zActAny'):t('ui_zAct',TN(c.act))) : (c.id<=16?t('ui_zStart'):t('ui_zNoAct'));
   zoomShow(el('img',{src:'cards/'+id+'.webp'}), el('div',{class:'zt'},
     el('h3',{},c.name),
-    el('div',{},el('span',{class:'tbadge b-'+c.type}),TN(c.type)+' — '+LN(c.lvl)+(c.woa?' — '+t('ui_zWoa',WN(c.woa)):'')),
+    el('div',{},icon('t_'+c.type,20,'margin-right:5px'),TN(c.type)+' — '+LN(c.lvl)+(c.woa?' — '+t('ui_zWoa',WN(c.woa)):'')),
     el('p',{},el('b',{},t('ui_zHire')+' : '),tm(E.effsTxt(c.H))||'—'),
     el('p',{},el('b',{},t('ui_zThen')+' : '),then),
     el('p',{},el('b',{},t('ui_zAbility')+' : '),tm(E.effsTxt(c.A)),el('br'),el('span',{class:'muted'},t('ui_zTrig',c.trig.map(TN).join(', ')))),
@@ -226,7 +227,7 @@ function render(){
     const box=el('div',{class:'tslot t-'+ty});
     if(id){ const im=el('img',{src:'rect/'+id+'.webp',alt:''}); im.onclick=()=>zoomImg('rect/'+id+'.webp',t('ui_rectorOf',TN(ty)),t('ui_rectCost',t('R_'+id))); box.appendChild(im); }
     else box.appendChild(el('img',{src:'rect/back.webp',alt:''}));
-    box.appendChild(el('div',{},el('b',{},el('span',{class:'tbadge b-'+ty}),TN(ty)),el('br'),id?t('R_'+id):t('ui_takenBy',owner?owner.name:'?')));
+    box.appendChild(el('div',{},el('b',{},icon('t_'+ty,22,'margin-right:5px'),TN(ty)),el('br'),id?t('R_'+id):t('ui_takenBy',owner?owner.name:'?')));
     rs.appendChild(box);
   });
   // objectifs
@@ -234,7 +235,7 @@ function render(){
   ['N','R','A','M'].forEach(ty=>{
     const o=S.objSlots[ty]; const who=S.players.filter(pl=>pl.emTok[ty]!==undefined).map(pl=>pl.name+' ('+pl.emTok[ty]+')');
     const im=el('img',{src:'obj/'+o.tile+'.webp',alt:''}); im.onclick=()=>zoomImg('obj/'+o.tile+'.webp',t('ui_objOf',TN(ty)),t('ui_objTxt',t('O_'+o.tile),TN(ty)));
-    os.appendChild(el('div',{class:'tslot t-'+ty},im,el('div',{},el('b',{},el('span',{class:'tbadge b-'+ty}),TN(ty)),el('br'),t('O_'+o.tile),
+    os.appendChild(el('div',{class:'tslot t-'+ty},im,el('div',{},el('b',{},icon('t_'+ty,22,'margin-right:5px'),TN(ty)),el('br'),t('O_'+o.tile),
       el('div',{class:'vps'},o.stack.map(v=>el('img',{src:'tok/vp'+v+'.webp',alt:v+' '+t('ui_vp')}))), who.length?el('div',{class:'muted'},t('ui_claimed',who.join(', '))):null)));
   });
   // lettres & jetons
@@ -255,7 +256,7 @@ function renderTabs(sel){
   u.appendChild(el('div',{class:'res'},
     el('span',{},el('span',{class:'coin'},pl.coins),t('ui_coins')), el('span',{},el('span',{class:'seal'},pl.infl),t('ui_infl')),
     el('span',{},'🏛 '+E.vp(S,tab)+' '+t('ui_vp')+(vpB.length?' ('+vpB.join(', ')+')':'')),
-    el('span',{},'🐎 '+pl.trav.map((x,i)=>E.TR[i]+':'+x).join(' ')+' · '+pl.cities+' '+t('ui_cities')),
+    el('span',{},icon('trav',20,'margin-right:4px'),pl.trav.map((x,i)=>E.TR[i]+':'+x).join(' ')+' · '+pl.cities+' '+t('ui_cities')),
     E.wild(pl)?el('span',{},t('ui_wild')):null));
   const rowEl=(label,arr,extra)=>{
     const cs=el('div',{class:'ucards'});
@@ -278,9 +279,9 @@ function renderTabs(sel){
     const menu=el('div',{class:'bkmenu'},el('div',{class:'bkt'},t('B_'+b)),
       ok?el('button',{class:'primary small',onclick:ev=>{ev.stopPropagation();bookAct('play',hk);}},t('ui_bkPlay')):el('div',{class:'muted',style:'font-size:13px'},t('ui_bkNo')),
       el('button',{class:'small',onclick:ev=>{ev.stopPropagation();bookAct('disc',hk);}},t('ui_bkDisc',tm(E.effsTxt(disc)))));
-    const w=el('div',{class:'bk',tabindex:'0'},im,menu);
+    const w=el('div',{class:'bk'+(S.pending&&S.pending.kind==='end'&&pl.hand.length>3?' warn':''),tabindex:'0'},im,menu);
     const place=()=>{ const r=w.getBoundingClientRect(); let x=r.right+6, y=r.top; if(x+226>innerWidth) x=r.left-232; y=Math.max(8,Math.min(innerHeight-200,y)); menu.style.left=x+'px'; menu.style.top=y+'px'; };
-    w.addEventListener('mouseenter',place); w.addEventListener('click',()=>{ place(); w.classList.toggle('open'); }); h.appendChild(w); });
+    w.addEventListener('click',ev=>{ ev.stopPropagation(); const was=w.classList.contains('open'); document.querySelectorAll('.bk.open').forEach(x=>x.classList.remove('open')); if(!was){ place(); w.classList.add('open'); } }); h.appendChild(w); });
   else pl.hand.forEach(()=>h.appendChild(el('img',{src:'book/back.webp'})));
   if(!pl.hand.length) h.appendChild(el('span',{class:'muted'},'—'));
   u.appendChild(el('div',{},el('b',{},t('ui_books')+' '),el('span',{class:'muted'},t('ui_booksSub',pl.hand.length)),h));
@@ -306,7 +307,8 @@ function renderDecide(){
   const opts=el('div',{class:'opts'});
   if(pd.kind==='move'){ d.appendChild(el('div',{class:'hint'},'👉 '+t('ui_clickTrack'))); const tb=document.querySelector('.cell.target'); if(tb) tb.scrollIntoView({block:'nearest',behavior:'smooth'}); return; }
   const THUMB={pair:1,place:1,lisboa:1,take:1,fes:1,meknes:1,elim:1,sale:1,freePromo:1,reorg:1};
-  const hideBooks=!(pd.kind==='end'&&S.players[pd.p].hand.length>3);
+  const hideBooks=true, nH=S.players[pd.p].hand.length;
+  if(pd.kind==='end'&&nH>3) d.appendChild(el('div',{class:'hint bkwarn'},icon('book',22,'margin-right:6px'),t('ui_tooManyBooks',nH)));
   pd.opts.forEach((o,k)=>{ if(filter&&!filter.includes(k)) return; if(hideBooks&&(o.play!==undefined||o.disc!==undefined)&&(pd.kind==='turn'||pd.kind==='end')) return;
     const b=el('button',{class:(o.endTurn?'primary':'')+(THUMB[pd.kind]&&o.cards?' cbtn':''),onclick:()=>act(k)});
     if(THUMB[pd.kind]&&o.cards){ const row=el('div',{class:'cthumbs'}); o.cards.forEach(id=>row.appendChild(el('img',{src:'cards/'+id+'.webp',alt:CARD[id].name}))); b.appendChild(row); }
