@@ -770,8 +770,8 @@ function renderStats(){
       {h:t('st_taken'),num:1,f:r=>r.app?r.n/r.app:-1,r:r=>el('span',{},pct(r.n,r.app))},
       {h:t('st_takenWin'),num:1,f:r=>r.n?r.w/r.n:-1,r:r=>el('span',{},pct(r.w,r.n))}],Object.values(rs),'rects'))));
   // objectifs + pays + villes
-  const os={}; ['A1','A2','B1','B2','C1','C2','D1','D2'].forEach(o=>os[o]={id:o,app:0,n:0,r:[],rc:[]});
-  games.forEach(g=>{ Object.entries(g.objs||{}).forEach(([ty,o])=>{ os[o].app++; os[o].r.push(g.rounds); const k=g.players.filter(p=>p.em[ty]!==undefined).length; os[o].n+=k; if(k) os[o].rc.push(g.rounds); }); });
+  const os={}; ['A1','A2','B1','B2','C1','C2','D1','D2'].forEach(o=>os[o]={id:o,app:0,n:0,w:0,rc:[]});
+  games.forEach(g=>{ Object.entries(g.objs||{}).forEach(([ty,o])=>{ os[o].app++; const cl=g.players.filter(p=>p.em[ty]!==undefined), k=cl.length; os[o].n+=k; os[o].w+=cl.filter(p=>p.win).length; if(k) os[o].rc.push(g.rounds); }); });
   const ct={}; Object.keys(D.countries).forEach(c=>ct[c]={id:c,n:0,r:[]});
   games.forEach(g=>g.cs.forEach(c=>{ if(ct[c]){ ct[c].n++; ct[c].r.push(g.rounds); } }));
   const cy={}; Object.entries(D.countries).forEach(([c,C])=>C.cities.forEach(x=>cy[x[1]]={k:x[1],c,app:0,n:0}));
@@ -780,7 +780,7 @@ function renderStats(){
     el('div',{class:'pcard'},el('h3',{},t('st_objs')),sortable([
       {h:t('st_obj'),f:r=>t('O_'+r.id),r:r=>{ const im=el('img',{class:'th',src:'obj/'+r.id+'.webp'}); im.onclick=()=>zoomImg('obj/'+r.id+'.webp',t('st_obj'),t('O_'+r.id)); return el('span',{},im,t('O_'+r.id)); }},
       {h:t('st_games'),num:1,f:r=>r.app},
-      {h:t('st_claimed'),num:1,f:r=>r.app?r.n/r.app:-1,r:r=>el('span',{},r.app?(r.n/r.app).toFixed(2):'—')},{h:t('st_roundsIn'),num:1,f:r=>r.r.length?avg(r.r):-1,r:r=>el('span',{},r.r.length?avg(r.r).toFixed(1):'—')},{h:t('st_roundsClaimed'),num:1,f:r=>r.rc.length?avg(r.rc):-1,r:r=>el('span',{},r.rc.length?avg(r.rc).toFixed(1):'—')}],Object.values(os),'objs')),
+      {h:t('st_claimed'),num:1,f:r=>r.app?r.n/r.app:-1,r:r=>el('span',{},r.app?(r.n/r.app).toFixed(2):'—')},{h:t('st_claimWin'),num:1,f:r=>r.n?r.w/r.n:-1,r:r=>el('span',{},r.n?Math.round(100*r.w/r.n)+'%':'—')},{h:t('st_roundsClaimed'),num:1,f:r=>r.rc.length?avg(r.rc):-1,r:r=>el('span',{},r.rc.length?avg(r.rc).toFixed(1):'—')}],Object.values(os),'objs')),
     el('div',{class:'pcard'},el('h3',{},t('st_countries')),sortable([
       {h:t('st_country'),f:r=>t('C_'+r.id),r:r=>el('span',{},el('img',{class:'th',src:'tok/country_'+COUNTRY_IMG[r.id]+'.webp',style:'width:22px'}),t('C_'+r.id))},
       {h:t('st_games'),num:1,f:r=>r.n},
