@@ -254,7 +254,7 @@ function renderTabs(sel){
   const pl=S.players[tab], u=$('#uni'); u.innerHTML='';
   const vpB=[]; if(pl.played.length) vpB.push(t('ui_vpBooks',pl.played.length)); Object.entries(pl.emTok).forEach(([ty,v])=>vpB.push(t('ui_vpEm',v,TN(ty)))); if(pl.rector) vpB.push(t('ui_vpRect')); if(pl.bologna) vpB.push(t('ui_vpBol',pl.bologna)); if(pl.constTok.length) vpB.push(t('ui_vpConst',pl.constTok.length));
   u.appendChild(el('div',{class:'res'},
-    el('span',{},el('span',{class:'coin'},pl.coins),t('ui_coins')), el('span',{},el('span',{class:'seal'},pl.infl),t('ui_infl')),
+    el('span',{title:t('ui_coins')},el('span',{class:'coin'},pl.coins)), el('span',{title:t('ui_infl')},el('span',{class:'seal'},pl.infl)),
     el('span',{},icon('laurel',20,'margin-right:4px'),E.vp(S,tab)+' '+t('ui_vp')+(vpB.length?' ('+vpB.join(', ')+')':'')),
     el('span',{},icon('trav',20,'margin-right:4px'),pl.trav.map((x,i)=>E.TR[i]+':'+x).join(' ')+' · '+pl.cities+' '+t('ui_cities')),
     (()=>{ const wl=E.woaList(pl), cnt={}; wl.forEach(w=>cnt[w]=(cnt[w]||0)+1); return el('span',{class:'woas'},['ARC','MUS','PAI','SCU','THE'].map(w=>el('span',{title:WN(w),style:'margin-right:8px;white-space:nowrap'+(cnt[w]?'':';opacity:.4')},icon('w_'+w,20,'margin-right:2px'),String(cnt[w]||0))),'('+wl.length+')'); })(),
