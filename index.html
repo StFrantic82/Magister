@@ -290,6 +290,16 @@ button.small{padding:3px 10px;font-size:14px}
 .horse i{display:block;width:100%;height:100%;-webkit-mask:url(ic/trav.png) center/contain no-repeat;mask:url(ic/trav.png) center/contain no-repeat}
 .cell .travs{gap:0}
 @media(max-width:700px){.horse{width:12px;height:11px}}
+#fbBtn{position:fixed;right:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:6px;background:linear-gradient(var(--goldA),var(--goldB));color:#2b1405;border:1px solid #7a4a12;border-radius:24px;padding:8px 14px;font-family:'IM Fell English SC';font-size:17px;box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:pointer}
+#fbBtn img{height:22px}
+.fbf{display:flex;flex-direction:column;gap:10px;width:min(520px,88vw);text-align:left;background:var(--parch);color:var(--ink,#2b1405);border-radius:12px;padding:18px 20px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.fbf input[type=text]{flex:1;min-width:160px}
+.fbf textarea{min-height:120px;font:inherit;padding:8px;border-radius:8px;border:1px solid #b89a6a;background:#fffaf0;resize:vertical}
+.fbcats{display:flex;flex-wrap:wrap;gap:6px}.fbcats button{font-size:14px;padding:4px 10px}.fbcats button.on{background:var(--wine2)!important;color:#fff!important;border-color:var(--wine2)}
+.fbstars span{font-size:26px;cursor:pointer;color:#c9b48a}.fbstars span.on{color:#d49a12}
+.fbitem{border:1px solid #c9ad7a;border-radius:10px;padding:10px 12px;margin:8px 0;background:#fffaf0}.fbitem.done{opacity:.55}
+.fbitem .meta{font-size:13px;color:#7a5a3a;display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.fbitem pre{white-space:pre-wrap;font:inherit;margin:0}
 </style>
 </head>
 <body>
@@ -307,7 +317,7 @@ button.small{padding:3px 10px;font-size:14px}
       </div>
     </div>
   </header>
-  <nav class="lnav"><button data-v="play" data-i18n="nav_play"></button><button data-v="tuto" data-i18n="nav_tuto"></button><button data-v="stats" data-i18n="nav_stats"></button><button data-v="sim" data-i18n="nav_sim"></button></nav>
+  <nav class="lnav"><button data-v="play" data-i18n="nav_play"></button><button data-v="tuto" data-i18n="nav_tuto"></button><button data-v="stats" data-i18n="nav_stats"></button><button data-v="sim" data-i18n="nav_sim"></button><button data-v="fb" data-i18n="nav_fb" class="hidden" id="navFb"></button></nav>
   <div id="v-play" class="view">
   <div class="wrap">
     <div class="orn" id="play"><span data-i18n="ui_choose"></span></div>
@@ -349,6 +359,8 @@ button.small{padding:3px 10px;font-size:14px}
   <div id="v-tuto" class="view hidden"><div class="wrap" id="tuto"></div></div>
   <div id="v-stats" class="view hidden"><div class="wrap" id="stats"></div></div>
   <div id="v-sim" class="view hidden"><div class="wrap" id="sim"></div></div>
+  <div id="v-fb" class="view hidden"><div class="wrap" id="fbAdmin"></div></div>
+  <button id="fbBtn" class="nopv"></button>
   <div class="wrap">
     <div class="foot"><img src="tok/mosaic.webp" alt="Mosaic Studio"><span>Magister — Flaminia Brasini, Virginio Gigli &amp; Marco Pranzo · © Mosaic Studio</span></div>
   </div>

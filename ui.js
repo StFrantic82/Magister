@@ -428,15 +428,73 @@ async function onlineAct(k,isAI){
 let view='play';
 function setView(v){
   view=v;
-  ['play','tuto','stats','sim'].forEach(x=>$('#v-'+x).classList.toggle('hidden',x!==v));
+  ['play','tuto','stats','sim','fb'].forEach(x=>$('#v-'+x).classList.toggle('hidden',x!==v));
+  $('#fbBtn').classList.toggle('hidden',v==='fb');
   document.querySelectorAll('.lnav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   if(v==='tuto') renderTuto();
   if(v==='stats') loadStats();
   if(v==='sim') renderSim();
+  if(v==='fb') renderFbAdmin();
   const nav=document.querySelector('.lnav'); if(nav && window.scrollY>nav.offsetTop) window.scrollTo({top:nav.offsetTop});
 }
 document.querySelectorAll('.lnav button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
 const icon=(n,h,extra)=>el('img',{src:'ic/'+n+'.png',alt:'',style:'height:'+(h||20)+'px;max-height:none;vertical-align:middle;box-shadow:none;border-radius:0;'+(extra||'')});
+
+
+// =========== AVIS / FEEDBACK ===========
+const FBCATS=['bug','rules','ui','ai','idea'];
+const IS_ADMIN=(()=>{ try{ const q=new URLSearchParams(location.search); if(q.has('admin')) localStorage.setItem('mag_admin','1'); if(q.has('noadmin')) localStorage.removeItem('mag_admin'); return localStorage.getItem('mag_admin')==='1'; }catch(e){ return false; } })();
+if(IS_ADMIN) $('#navFb').classList.remove('hidden');
+function fbContext(){
+  const c={lang:LANG,view,ua:navigator.userAgent.slice(0,160),w:innerWidth,h:innerHeight};
+  try{ if(S&&view==='play'){ c.game={phase:S.phase,turn:S.turnNo,n:S.players.length,tracks:S.tracks,over:!!S.over,vp:S.players.map((p,k)=>E.vp(S,k)),pending:S.pending&&S.pending.kind,log:(S.log||[]).slice(-6).map(x=>typeof x==='string'?x:tm(x))}; } }catch(e){}
+  return c;
+}
+async function fbSend(rec){
+  if(db){ try{ await db.collection('feedback').doc().set(rec); return true; }catch(e){ console.warn(e); } }
+  const q=store.get('mag_fbq')||[]; q.push(rec); store.set('mag_fbq',q); return false;
+}
+async function fbFlush(){ if(!db) return; const q=store.get('mag_fbq')||[]; if(!q.length) return; const rest=[]; for(const r of q){ try{ await db.collection('feedback').doc().set(r); }catch(e){ rest.push(r); } } store.set('mag_fbq',rest); }
+setTimeout(fbFlush,15000);
+function openFeedback(){
+  let cat=null, stars=0;
+  const ta=el('textarea',{placeholder:t('fb_ph')});
+  const cats=el('div',{class:'fbcats'}); const drawCats=()=>{ cats.innerHTML=''; FBCATS.forEach(k=>cats.appendChild(el('button',{class:cat===k?'on':'',onclick:()=>{cat=cat===k?null:k; drawCats();}},t('fb_c_'+k)))); }; drawCats();
+  const st=el('div',{class:'fbstars'}); const drawSt=()=>{ st.innerHTML=''; for(let i=1;i<=5;i++) st.appendChild(el('span',{class:i<=stars?'on':'',onclick:()=>{stars=stars===i?0:i; drawSt();}},'★')); }; drawSt();
+  const nm=el('input',{type:'text',placeholder:t('fb_name'),value:(store.get('mag_name')||'')});
+  const msg=el('p',{class:'muted',style:'margin:0;min-height:1.2em'});
+  const send=el('button',{class:'primary',onclick:async()=>{
+    const txt=ta.value.trim(); if(txt.length<3){ msg.textContent=t('fb_empty'); return; }
+    send.disabled=true; msg.textContent=t('fb_sending');
+    const rec={t:Date.now(),cat:cat||'other',stars,text:txt.slice(0,4000),name:nm.value.trim().slice(0,40),uid:myUid||null,src:window.claude&&window.claude.use?'claude':'web',ctx:fbContext(),done:false};
+    const ok=await fbSend(rec);
+    zoomShow(el('div',{class:'zt'},el('p',{},ok?t('fb_thanks'):t('fb_queued')),el('button',{onclick:zoomHide},t('ui_ok'))));
+  }},t('fb_send'));
+  zoomShow(el('div',{class:'fbf'},el('h3',{style:'margin:0'},t('fb_title')),el('p',{class:'muted',style:'margin:0'},t('fb_intro')),cats,ta,el('div',{style:'display:flex;gap:12px;align-items:center;flex-wrap:wrap'},el('span',{},t('fb_rate')),st,nm),msg,el('div',{style:'display:flex;gap:8px;justify-content:flex-end'},el('button',{onclick:zoomHide},t('ui_cancel')),send)));
+  setTimeout(()=>ta.focus(),50);
+}
+$('#fbBtn').appendChild(icon('letter',22)); $('#fbBtn').appendChild(el('span',{'data-i18n':'fb_btn'},t('fb_btn'))); $('#fbBtn').onclick=openFeedback;
+let FB=null, fbFilter={cat:'all',st:'open'};
+async function renderFbAdmin(){
+  const box=$('#fbAdmin'); box.innerHTML=''; box.appendChild(el('h2',{},t('fb_admin')));
+  if(!db){ box.appendChild(el('p',{},t('fb_noDb'))); return; }
+  if(!FB){ box.appendChild(el('p',{class:'muted'},t('fb_loading'))); try{ const r=await db.collection('feedback').limit(2000).get(); FB=r.docs.map(d=>Object.assign({_id:d.id},d.data())).sort((a,b)=>b.t-a.t); }catch(e){ box.lastChild.textContent=t('fb_readErr',e.code||e.message); return; } box.lastChild.remove(); }
+  const bar=el('div',{class:'ctrls',style:'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px'});
+  const sel=(opts,key)=>{ const s=el('select',{onchange:()=>{fbFilter[key]=s.value; renderFbAdmin();}}); opts.forEach(([v,l])=>s.appendChild(el('option',{value:v,selected:fbFilter[key]===v?'':null},l))); return s; };
+  bar.appendChild(sel([['all',t('fb_all')],...FBCATS.concat(['other']).map(k=>[k,t('fb_c_'+k)])],'cat'));
+  bar.appendChild(sel([['open',t('fb_open')],['done',t('fb_doneF')],['all',t('fb_all')]],'st'));
+  bar.appendChild(el('button',{onclick:()=>{FB=null; renderFbAdmin();}},t('fb_reload')));
+  bar.appendChild(el('button',{onclick:()=>{ const b=new Blob([JSON.stringify(FB,null,1)],{type:'application/json'}); const a=el('a',{href:URL.createObjectURL(b),download:'magister-avis.json'}); document.body.appendChild(a); a.click(); a.remove(); }},t('fb_export')));
+  box.appendChild(bar);
+  const list=FB.filter(f=>(fbFilter.cat==='all'||f.cat===fbFilter.cat)&&(fbFilter.st==='all'||(fbFilter.st==='done')===!!f.done));
+  box.appendChild(el('p',{class:'muted'},t('fb_count',list.length,FB.filter(f=>!f.done).length)));
+  list.forEach(f=>{ const g=f.ctx&&f.ctx.game;
+    box.appendChild(el('div',{class:'fbitem'+(f.done?' done':'')},
+      el('div',{class:'meta'},el('b',{},t('fb_c_'+(f.cat||'other'))),el('span',{},new Date(f.t).toLocaleString()),el('span',{},f.name||t('fb_anon')),f.stars?el('span',{},'★'.repeat(f.stars)):null,el('span',{},(f.src||'')+' · '+((f.ctx&&f.ctx.lang)||'')+' · '+((f.ctx&&f.ctx.view)||'')),g?el('span',{},t('fb_ctxGame',g.turn,g.tracks.join('/'))):null),
+      el('pre',{},f.text),
+      el('div',{style:'margin-top:6px;display:flex;gap:6px'},el('button',{class:'small',onclick:async()=>{ try{ await db.doc('feedback/'+f._id).update({done:!f.done}); f.done=!f.done; renderFbAdmin(); }catch(e){ alertBox(t('fb_readErr',e.code||e.message)); } }},f.done?t('fb_reopen'):t('fb_markDone')))));
+  });
+}
 
 // =========== TUTORIEL ===========
 let tutoStep=0;
