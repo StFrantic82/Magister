@@ -319,7 +319,7 @@ function step(s,t){
     opts.push({label:M('o_nothing'),pass:1});
     ask(s,p,'const',M('q_const',pn(s,p)),opts,t); return; }
   case 'beijing': {
-    const opts=[]; s.tracks.forEach(cc=>D.countries[cc].cities.forEach(c=>{ if(c[0]<12 && cc!=='SLK' && !t.used.includes(c[1])) opts.push({label:M('o_beijing',CY(c[1]),M('CE_'+c[1])),key:c[1]}); }));
+    const opts=[]; s.tracks.forEach(cc=>D.countries[cc].cities.forEach(c=>{ if(c[0]<12 && !t.used.includes(c[1])) opts.push({label:M('o_beijing',CY(c[1]),M('CE_'+c[1])),key:c[1]}); }));
     if(!opts.length||t.left<=0) return;
     ask(s,p,'beijing',M('q_beijing',pn(s,p),3-t.left),opts,t); return; }
   case 'thess':
