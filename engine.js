@@ -115,7 +115,7 @@ function bookOk(s,p,bid){
 function objOk(s,p,tile){
   const pl=P(s,p);
   switch(tile){
-    case 'A1': return D.TYPES.reduce((a,t)=>a+Math.max(0,2-countTypeRaw(pl,t)),0)<=(wild(pl)?1:0);
+    case 'A1': return pl.played.length>0 && D.TYPES.reduce((a,t)=>a+Math.max(0,2-countTypeRaw(pl,t)),0)<=(wild(pl)?1:0);
     case 'A2': return D.TYPES.some(t=>countType(pl,t)>=6);
     case 'B1': return journeys(pl)>=1 && pl.coins>=6 && pl.infl>=6;
     case 'B2': return journeys(pl)>=2;
@@ -139,7 +139,7 @@ function needs(s,p){
 function objProgress(s,p,tile){
   const pl=P(s,p), cap=x=>Math.max(0,Math.min(1,x));
   switch(tile){
-    case 'A1': return Math.min(1,(D.TYPES.reduce((a,t)=>a+Math.min(2,countTypeRaw(pl,t)),0)+(wild(pl)?1:0))/8);
+    case 'A1': return Math.min(1,(D.TYPES.reduce((a,t)=>a+Math.min(2,countTypeRaw(pl,t)),0)+(wild(pl)?1:0)+(pl.played.length?1:0))/9);
     case 'A2': return cap(Math.max(...D.TYPES.map(t=>countType(pl,t)))/6);
     case 'B1': return cap(Math.max(...pl.trav)/12)*0.5+cap(Math.min(pl.coins,6)/6)*0.25+cap(Math.min(pl.infl,6)/6)*0.25;
     case 'B2': return cap(pl.trav.slice().sort((a,b)=>b-a).slice(0,2).reduce((a,b)=>a+b,0)/24);
@@ -277,7 +277,7 @@ function step(s,t){
     const cand=pl.students.map((co,k)=>[co,k]).filter(([co])=>co.uid===undefined||co.uid!==s.turn.hired);
     if(!cand.length){ abortCtx(s,t.ctx); log(s,M('log_noElim',pn(s,p))); return; }
     ask(s,p,'elim',M('q_elim',pn(s,p)),cand.map(([co,k])=>({label:M('o_elim',cn(co.id)),idx:k,cards:[co.id]})).concat([{label:M('o_noElim'),pass:1}]),t); return; }
-  case 'hire': return hire(s,p,t.slot,t.free);
+  case 'hire': return hire(s,p,t.slot,t.free,t.noAct);
   case 'choice': {
     const c=CARD[t.id]; if(!c.act) return;
     if(c.act!=='any' && !promoOptions(s,p).length){ s.stack.push({k:'activate',p,type:c.act}); pl.nAct=(pl.nAct||0)+1; return; }
@@ -370,7 +370,7 @@ function resolve(s,pd,o){
   case 'reorgPos': { const r=pl[t.row]; const [co]=r.splice(t.idx,1); r.splice(o.pos,0,co); log(s,M('log_reorg',pl.name,cn(co.id),o.pos+1)); return; }
   case 'promo': if(!o.pass) doPromo(s,p,o.to,o.idx,false); return;
   case 'freePromo': doPromo(s,p,'S',o.idx,true); return;
-  case 'take': s.stack.push({k:'hire',p,slot:o.slot,free:true}); return;
+  case 'take': s.stack.push({k:'hire',p,slot:o.slot,free:true,noAct:!!t.noAct}); return;
   case 'elim': { if(o.pass){ abortCtx(s,t.ctx); return; } const [co]=pl.students.splice(o.idx,1); log(s,M('log_elim',pl.name,cn(co.id))); return; }
   case 'choice':
     if(o.act){ s.stack.push({k:'activate',p,type:o.act}); pl.nAct=(pl.nAct||0)+1; }
@@ -403,8 +403,8 @@ function cityEff(s,p,key){
   const pl=P(s,p);
   const push=e=>pushSeq(s,p,e);
   switch(key){
-    case 'samarkand': s.stack.push({k:'move',p,n:1}); break;
-    case 'kashgar': s.stack.push({k:'move',p,n:2}); break;
+    case 'samarkand': pl.coins++; gain(pl,'c',1); break;
+    case 'kashgar': s.stack.push({k:'move',p,n:3}); break;
     case 'beijing': s.stack.push({k:'beijing',p,left:2,used:[]}); break;
     case 'pisa': push([{ci:1}]); break;
     case 'padova': s.stack.push({k:'reorg',p}); break;
@@ -445,10 +445,12 @@ function doPromo(s,p,to,idx,free){
     if(!free) pay(pl,Math.max(0,idx+1-red),8); pl.profs.splice(idx,1); pl.rector={card:co,tile,type:ty}; s.rectSlots[ty]=null;
     log(s,M('log_rector',pl.name,cn(co.id),M('R_'+tile)));
     if(tile==='2b') drawBooks(s,p,1);
+    if(tile==='5a') s.stack.push({k:'take',p,max:6,noAct:true});
+    if(tile==='5b'){ s.stack.push({k:'promo',p}); s.stack.push({k:'move',p,n:5}); }
   }
 }
 
-function hire(s,p,slot,free){
+function hire(s,p,slot,free,noAct){
   const pl=P(s,p), co=s.row[slot]; if(!co) return;
   const cost=hireCost(s,p,slot,free);
   pay(pl,0,cost);
@@ -462,7 +464,7 @@ function hire(s,p,slot,free){
   if(hasRect(pl,'1a') && cardWoa(co).length){ pl.coins++; pl.infl++; gain(pl,'c',1); gain(pl,'i',1); }
   // ordre : bonus d'embauche → choix Activation/Promotion → remplissage de la rangée
   s.stack.push({k:'refill'});
-  s.stack.push({k:'choice',p,id:co.id});
+  if(!noAct) s.stack.push({k:'choice',p,id:co.id});
   if(hasRect(pl,'1b') && c.lvl===1) s.stack.push({k:'move',p,n:3});
   pushSeq(s,p,c.H);
 }

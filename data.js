@@ -133,9 +133,11 @@ const rectors=[
  {id:'3b',txt:'Compte comme un personnage supplémentaire du type et du niveau de ton choix'},
  {id:'4a',txt:'Promotion : coût en pièces réduit de 2'},
  {id:'4b',txt:'Embauche : coût en influence réduit de 2'},
+ {id:'5a',txt:'Prends gratuitement un Étudiant de la rangée : applique son effet immédiat, sans Activation ni Promotion'},
+ {id:'5b',txt:'5 déplacements + 1 promotion (en payant son coût)'},
 ];
 const objectives={
- A1:'2 personnages de chaque type', A2:'6 personnages du même type',
+ A1:'1 Livre joué + 2 personnages de chaque type', A2:'6 personnages du même type',
  B1:'1 parcours complété + 6 pièces + 6 influence', B2:'2 parcours complétés',
  C1:'5 Professeurs', C2:'3 Émérites',
  D1:'5 œuvres d\'art différentes', D2:'7 œuvres d\'art',
@@ -144,11 +146,11 @@ const countries={
  ITA:{name:'Italie',img:'ita',cities:[[4,'pisa','Pise','1 pièce ou 1 influence'],[8,'padova','Padoue','Réorganiser une carte'],[12,'bologna','Bologne','Jeton Bologne (1 PV)']]},
  FRA:{name:'France',img:'fra',cities:[[3,'toulouse','Toulouse','Gagner une Lettre'],[7,'avignon','Avignon','1 pièce ou 1 influence par œuvre différente'],[12,'paris','Paris','1 Livre par œuvre de ton type majoritaire']]},
  ENG:{name:'Angleterre',img:'eng',cities:[[6,'cambridge','Cambridge','2 pièces ou 2 influence, puis promotion payante'],[12,'oxford','Oxford','3 pièces ou 3 influence, puis promotion payante']]},
- POR:{name:'Portugal',img:'por',cities:[[6,'lisboa','Lisbonne','Pioche 3 Étudiants, place-en 1 en Professeur'],[12,'coimbra','Coimbra','Active tous les Professeurs d\'un type']]},
+ POR:{name:'Portugal',img:'por',cities:[[6,'coimbra','Coimbra','Active tous les Professeurs d\'un type'],[12,'lisboa','Lisbonne','Pioche 3 Étudiants, place-en 1 en Professeur']]},
  SPA:{name:'Espagne',img:'spa',cities:[[3,'valladolid','Valladolid','Pioche 1 Livre'],[7,'salamanca','Salamanque','Pioche 2 Livres, défausse-en 1'],[12,'barcelona','Barcelone','Pioche 2 Livres']]},
  GER:{name:'Europe centrale',img:'ger',cities:[[4,'heidelberg','Heidelberg','1 pièce/influence par Bronze'],[8,'vienna','Vienne','2 pièces/influence par Argent'],[12,'praha','Prague','3 pièces/influence par Or']]},
  BYZ:{name:'Empire byzantin',img:'byz',goodie:true,cities:[[6,'thessaloniki','Thessalonique','Active tous tes Émérites'],[12,'constantinople','Constantinople','Rétrograde un Émérite pour 1 PV']]},
- SLK:{name:'Route de la soie',img:'slk',cities:[[3,'samarkand','Samarcande','1 déplacement'],[7,'kashgar','Kachgar','2 déplacements'],[12,'beijing','Pékin','Copie 2 Villes différentes (case 11 max.)']]},
+ SLK:{name:'Route de la soie',img:'slk',cities:[[3,'samarkand','Samarcande','1 pièce'],[7,'kashgar','Kachgar','3 déplacements'],[12,'beijing','Pékin','Copie 2 Villes différentes (case 11 max.)']]},
  MOR:{name:'Maroc',img:'mor',goodie:true,cities:[[4,'sale','Salé','Défausse un de tes Étudiants'],[8,'meknes','Meknès','Active la capacité d\'un de tes Étudiants'],[12,'fes','Fès','Embauche n\'importe quel Étudiant']]},
 };
 const letters=[{id:'c2',g:[{c:2}]},{id:'i2',g:[{i:2}]},{id:'book',g:[{b:1}]},{id:'promo',g:[{p:1}]},{id:'mv2',g:[{t:2}]},
