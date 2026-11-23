@@ -215,7 +215,7 @@ function render(){
       if(moveOpt[ti]!==undefined && n===mePl.trav[ti]+1){ cell.classList.add('target'); const k=moveOpt[ti]; cell.addEventListener('click',ev=>{ ev.stopImmediatePropagation(); act(k); }); }
       if(cy){ cell.style.backgroundImage='url(city/'+cy[1]+'.webp)'; cell.addEventListener('click',()=>zoomImg('city/'+cy[1]+'.webp',t('CY_'+cy[1])+' ('+n+')',t('CE_'+cy[1]))); }
       else cell.appendChild(el('span',{class:'n'},n||'⚑'));
-      const tv=el('div',{class:'travs'}); S.players.forEach(pl=>{ if(pl.trav[ti]===n) tv.appendChild(el('span',{class:'dot',style:'background:'+pl.color,title:pl.name})); });
+      const tv=el('div',{class:'travs'}); S.players.forEach(pl=>{ if(pl.trav[ti]===n) tv.appendChild(el('span',{class:'horse',title:pl.name},el('i',{style:'background:'+pl.color}))); });
       cell.appendChild(tv); line.appendChild(cell);
     }
     tr.appendChild(line);
