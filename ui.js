@@ -2,7 +2,7 @@
 const D=window.MAG, E=window.MagEngine, CARD=E.CARD, BOOK=E.BOOK, DICT=window.MAG_I18N;
 const $=s=>document.querySelector(s);
 const el=(tag,attrs,...kids)=>{ const e=document.createElement(tag); if(attrs) for(const k in attrs){ if(k==='class') e.className=attrs[k]; else if(k==='style') e.style.cssText=attrs[k]; else if(k.startsWith('on')) e.addEventListener(k.slice(2),attrs[k]); else if(attrs[k]!==undefined&&attrs[k]!==null&&attrs[k]!==false) e.setAttribute(k,attrs[k]); } kids.flat().forEach(c=>{ if(c==null||c===false) return; e.appendChild(typeof c==='string'||typeof c==='number'?document.createTextNode(String(c)):c); }); return e; };
-const COUNTRY_IMG={ITA:'ita',FRA:'fra',ENG:'eng',POR:'por',SPA:'spa',GER:'ger',BYZ:'byz',MOR:'mor'};
+const COUNTRY_IMG={ITA:'ita',FRA:'fra',ENG:'eng',POR:'por',SPA:'spa',GER:'ger',BYZ:'byz',MOR:'mor',SLK:'slk'};
 const SEATCOL=['#c0392b','#2471a3','#d4ac0d','#7d3c98'];
 const PALETTE=['#c0392b','#2471a3','#d4ac0d','#7d3c98','#27864a','#e67e22','#2b2b2b','#f4f1ea'];
 const tokTxt=c=>(c==='#d4ac0d'||c==='#f4f1ea')?'#2b1405':'#fff';

@@ -55,7 +55,7 @@ function newGame(opts){
   s.players = opts.players.map((p,k)=>({name:p.name, ai:!!p.ai, uid:p.uid||null, color:p.color||COLORS[k], coins:0, infl:0, hand:[], played:[],
     students:[], profs:[], emer:[], rector:null, virt:null, trav:[0,0,0], emTok:{}, bologna:0, constTok:[], cities:0, w:p.w||null,
     hires:[], citiesK:[], promos:{S:0,E:0,R:0}, booksTurn:[]}));
-  const cs = opts.countries && opts.countries.length===3 ? opts.countries.slice() : shuffle(s,['ITA','FRA','ENG','POR','SPA','GER','BYZ','MOR']).slice(0,3);
+  const cs = opts.countries && opts.countries.length===3 ? opts.countries.slice() : shuffle(s,['ITA','FRA','ENG','POR','SPA','GER','BYZ','MOR','SLK']).slice(0,3);
   s.tracks = cs;
   s.bologna = cs.includes('ITA') ? n : 0;
   s.constTok = cs.includes('BYZ') ? shuffle(s,['A','M','N','R']).slice(0,n) : [];
@@ -318,6 +318,10 @@ function step(s,t){
     if(!opts.length){ log(s,M('log_noConst',pn(s,p))); return; }
     opts.push({label:M('o_nothing'),pass:1});
     ask(s,p,'const',M('q_const',pn(s,p)),opts,t); return; }
+  case 'beijing': {
+    const opts=[]; s.tracks.forEach(cc=>D.countries[cc].cities.forEach(c=>{ if(c[0]<12 && cc!=='SLK' && !t.used.includes(c[1])) opts.push({label:M('o_beijing',CY(c[1]),M('CE_'+c[1])),key:c[1]}); }));
+    if(!opts.length||t.left<=0) return;
+    ask(s,p,'beijing',M('q_beijing',pn(s,p),3-t.left),opts,t); return; }
   case 'thess':
     log(s,M('log_thess',pn(s,p)));
     for(let k=pl.emer.length-1;k>=0;k--) pushSeq(s,p,CARD[pl.emer[k].id].A);
@@ -376,6 +380,7 @@ function resolve(s,pd,o){
   case 'pickType': s.stack.push({k:'activate',p,type:o.type}); return;
   case 'lisboa': o.drawn.filter(x=>x!==o.id).forEach(x=>s.deck.push(x)); pl.profs.push({id:o.id,letters:[]}); log(s,M('log_lisboa',pl.name,cn(o.id))); return;
   case 'meknes': pushSeq(s,p,CARD[o.id].A); log(s,M('log_meknes',pl.name,cn(o.id))); return;
+  case 'beijing': { if(t.left>1) s.stack.push({k:'beijing',p,left:t.left-1,used:t.used.concat([o.key])}); log(s,M('log_beijing',pl.name,CY(o.key))); cityEff(s,p,o.key); return; }
   case 'sale': if(!o.pass){ const [co]=pl.students.splice(o.idx,1); log(s,M('log_sale',pl.name,cn(co.id))); } return;
   case 'fes': s.stack.push({k:'hire',p,slot:o.slot,free:false}); return;
   case 'const': if(!o.pass){ const ty=s.constTok.splice(o.tok,1)[0]; const [co]=pl.emer.splice(o.idx,1); pl.profs.push(co); pl.constTok.push(ty); log(s,M('log_const',pl.name,cn(co.id))); } return;
@@ -392,8 +397,15 @@ function city(s,p,t){
   const pl=P(s,p); pl.cities++; (pl.citiesK=pl.citiesK||[]).push(t.key);
   log(s,M('log_city',pl.name,CY(t.key),M('CE_'+t.key)));
   if(hasRect(pl,'3a')) drawBooks(s,p,1);
+  cityEff(s,p,t.key);
+}
+function cityEff(s,p,key){
+  const pl=P(s,p);
   const push=e=>pushSeq(s,p,e);
-  switch(t.key){
+  switch(key){
+    case 'samarkand': s.stack.push({k:'move',p,n:1}); break;
+    case 'kashgar': s.stack.push({k:'move',p,n:2}); break;
+    case 'beijing': s.stack.push({k:'beijing',p,left:2,used:[]}); break;
     case 'pisa': push([{ci:1}]); break;
     case 'padova': s.stack.push({k:'reorg',p}); break;
     case 'bologna': if(s.bologna>0){ s.bologna--; pl.bologna++; log(s,M('log_bologna',pl.name)); } break;

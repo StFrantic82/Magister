@@ -148,6 +148,7 @@ const countries={
  SPA:{name:'Espagne',img:'spa',cities:[[3,'valladolid','Valladolid','Pioche 1 Livre'],[7,'salamanca','Salamanque','Pioche 2 Livres, défausse-en 1'],[12,'barcelona','Barcelone','Pioche 2 Livres']]},
  GER:{name:'Europe centrale',img:'ger',cities:[[4,'heidelberg','Heidelberg','1 pièce/influence par Bronze'],[8,'vienna','Vienne','2 pièces/influence par Argent'],[12,'praha','Prague','3 pièces/influence par Or']]},
  BYZ:{name:'Empire byzantin',img:'byz',goodie:true,cities:[[6,'thessaloniki','Thessalonique','Active tous tes Émérites'],[12,'constantinople','Constantinople','Rétrograde un Émérite pour 1 PV']]},
+ SLK:{name:'Route de la soie',img:'slk',cities:[[3,'samarkand','Samarcande','1 déplacement'],[7,'kashgar','Kachgar','2 déplacements'],[12,'beijing','Pékin','Copie 2 Villes différentes (hors case 12 et Route de la soie)']]},
  MOR:{name:'Maroc',img:'mor',goodie:true,cities:[[4,'sale','Salé','Défausse un de tes Étudiants'],[8,'meknes','Meknès','Active la capacité d\'un de tes Étudiants'],[12,'fes','Fès','Embauche n\'importe quel Étudiant']]},
 };
 const letters=[{id:'c2',g:[{c:2}]},{id:'i2',g:[{i:2}]},{id:'book',g:[{b:1}]},{id:'promo',g:[{p:1}]},{id:'mv2',g:[{t:2}]},
