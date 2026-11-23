@@ -696,7 +696,7 @@ function aiPlan(s){
   }
   return best;
 }
-const LVL={1:{mist:0.55,noise:0.8,rand:0.15},2:{mist:0.22,noise:0.5,rand:0.05}};
+const LVL={1:{mist:0.55,noise:0.8,rand:0.15},2:{mist:0.32,noise:0.5,rand:0.05}};
 function aiChoose(s,depth){
   const pd=s.pending, pl=pd&&s.players[pd.p], lv=(pl&&pl.lvl)||3;
   if(depth||lv>=3||!LVL[lv]||Math.random()>=LVL[lv].mist) return aiChooseHard(s,depth);
