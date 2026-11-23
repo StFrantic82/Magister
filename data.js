@@ -127,8 +127,8 @@ const books=[
 const rectors=[
  {id:'1a',txt:'Embaucher un Étudiant avec une œuvre d\'art : +1 pièce et +1 influence'},
  {id:'1b',txt:'Embaucher un Étudiant Bronze : +3 déplacements'},
- {id:'2a',txt:'Pioche 1 Livre. Défausser un Livre donne 1 pièce + 1 influence + 1 déplacement à la place de son effet'},
- {id:'2b',txt:'Tu peux dépenser des pièces comme de l\'influence et inversement'},
+ {id:'2a',txt:'Défausser un Livre donne 1 pièce + 1 influence + 1 déplacement à la place de son effet'},
+ {id:'2b',txt:'Pioche 1 Livre. Tu peux dépenser des pièces comme de l\'influence et inversement'},
  {id:'3a',txt:'Atteindre une Ville : pioche 1 Livre'},
  {id:'3b',txt:'Compte comme un personnage supplémentaire du type et du niveau de ton choix'},
  {id:'4a',txt:'Promotion : coût en pièces réduit de 2'},

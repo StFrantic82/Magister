@@ -431,7 +431,7 @@ function doPromo(s,p,to,idx,free){
   if(to==='R'){ const co=pl.profs[idx]; const ty=CARD[co.id].type; const tile=s.rectSlots[ty]; if(!tile) return;
     if(!free) pay(pl,Math.max(0,idx+1-red),8); pl.profs.splice(idx,1); pl.rector={card:co,tile,type:ty}; s.rectSlots[ty]=null;
     log(s,M('log_rector',pl.name,cn(co.id),M('R_'+tile)));
-    if(tile==='2a') drawBooks(s,p,1);
+    if(tile==='2b') drawBooks(s,p,1);
   }
 }
 
