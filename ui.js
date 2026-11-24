@@ -609,7 +609,7 @@ function startTutoGame(){
 const TOUR=['#score','#rslots','#oslots','#row .decks','#row .slot','#tracks','#tabs','#uni .res','#uni .urow','#uni .bhelp','#uni .hand','#letters','#log','#decide','#quit'];
 let tourOn=false, tourI=0;
 function tourEls(i){ return [...document.querySelectorAll(TOUR[i])].filter(e=>{ const r=e.getBoundingClientRect(); return r.width>0&&r.height>0; }); }
-function startTour(i){ tourOn=true; tourI=i||0; let o=$('#tour'); if(!o){ o=el('div',{id:'tour'},el('div',{id:'tourHole'}),el('div',{id:'tourBub'})); document.body.appendChild(o); }
+function startTour(i){ tourOn=true; tourI=i||0; let o=$('#tour'); if(!o){ o=el('div',{id:'tour'},el('div',{class:'tblk'}),el('div',{class:'tblk'}),el('div',{class:'tblk'}),el('div',{class:'tblk'}),el('div',{id:'tourHole'}),el('div',{id:'tourBub'})); document.body.appendChild(o); }
   o.classList.remove('hidden'); renderCoach(); showTourStep(); }
 function endTour(){ tourOn=false; const o=$('#tour'); if(o) o.classList.add('hidden'); window.scrollTo({top:0,behavior:'smooth'}); renderCoach(); }
 function showTourStep(){
@@ -619,6 +619,7 @@ function showTourStep(){
   if(!fixed) els[0].scrollIntoView({block:'center',behavior:'smooth'});
   const b=$('#tourBub'); b.innerHTML=''; const last=tourI===TOUR.length-1;
   b.append(el('div',{class:'tstep'},(tourI+1)+' / '+TOUR.length),el('h4',{},t('tour_'+(tourI+1)+'_t')),el('p',{},t('tour_'+(tourI+1)+'_x')),
+    ['#rslots','#oslots'].includes(TOUR[tourI])?el('div',{class:'ttys'},['N','R','A','M'].map(ty=>el('span',{},icon('t_'+ty,24,'width:24px;cursor:default;margin-right:4px'),TN(ty)))):null,
     el('div',{class:'row-f'},el('button',{class:'small',onclick:endTour},t('tour_skip')),el('span',{style:'flex:1'}),
       tourI>0?el('button',{class:'small',onclick:()=>{ do{tourI--;}while(tourI>0&&!tourEls(tourI).length); showTourStep(); }},t('tour_prev')):null,
       el('button',{class:'small primary',onclick:()=>{ if(last) endTour(); else { tourI++; showTourStep(); } }},t(last?'tour_done':'tour_next'))));
@@ -629,6 +630,8 @@ function placeTour(){
   let L=1e9,T=1e9,R=-1e9,B=-1e9; els.forEach(e=>{ const r=e.getBoundingClientRect(); L=Math.min(L,r.left);T=Math.min(T,r.top);R=Math.max(R,r.right);B=Math.max(B,r.bottom); });
   const p=6, vw=innerWidth, vh=innerHeight; T=Math.max(T,4-p); B=Math.min(B,vh-4+p);
   const h=$('#tourHole'); Object.assign(h.style,{left:(L-p)+'px',top:(T-p)+'px',width:(R-L+2*p)+'px',height:(B-T+2*p)+'px'});
+  const hl=L-p,ht=T-p,hr=R+p,hb=B+p, bk=document.querySelectorAll('#tour .tblk'), S4=[[0,0,vw,ht],[0,hb,vw,vh],[0,ht,hl,hb],[hr,ht,vw,hb]];
+  bk.forEach((d,k)=>{ const [x1,y1,x2,y2]=S4[k]; Object.assign(d.style,{left:x1+'px',top:y1+'px',width:Math.max(0,x2-x1)+'px',height:Math.max(0,y2-y1)+'px'}); });
   const bb=$('#tourBub'), bw=Math.min(360,vw-24); bb.style.width=bw+'px'; const bh=bb.offsetHeight;
   let x,y;
   if(B+p+12+bh<vh){ y=B+p+12; x=L; } else if(T-p-12-bh>0){ y=T-p-12-bh; x=L; }
