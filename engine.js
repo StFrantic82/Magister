@@ -308,7 +308,7 @@ function step(s,t){
     ask(s,p,'meknes',M('q_meknes',pn(s,p)),pl.students.map(co=>({label:M('o_ability',cn(co.id),effsTxt(CARD[co.id].A)),id:co.id,cards:[co.id]})),t); return;
   case 'sale':
     if(!pl.students.length) return;
-    ask(s,p,'sale',M('q_sale',pn(s,p)),pl.students.map((co,k)=>({label:M('o_elim',cn(co.id)),idx:k,cards:[co.id]})).concat([{label:M('o_noElim2'),pass:1}]),t); return;
+    ask(s,p,'sale',M('q_sale',pn(s,p)),pl.students.map((co,k)=>({label:M('o_elim',cn(co.id)),idx:k,cards:[co.id]})),t); return;
   case 'fes': {
     const opts=[]; s.row.forEach((co,k)=>{ if(co && canPay(pl,0,hireCost(s,p,k))) opts.push({label:M('o_fes',cn(co.id),hireCost(s,p,k)),slot:k,cards:[co.id]}); });
     if(!opts.length) return;
