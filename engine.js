@@ -72,10 +72,11 @@ function newGame(opts){
   s.players.forEach((pl,k)=>drawBooks(s,k,2,true));
   const st = shuffle(s, D.cards.filter(c=>c.id<=16).map(c=>c.id)).slice(0,2*n);
   s.pairs = []; for(let k=0;k<n;k++) s.pairs.push([st[2*k],st[2*k+1]]);
-  s.start = 0; s.phase = 'setup'; s.turnNo = 0; s.endTriggered = false;
-  s.turn = {p:n-1, hired:null};
+  s.start = Math.floor(rnd(s)*n); s.phase = 'setup'; s.turnNo = 0; s.endTriggered = false;
+  const last=(s.start+n-1)%n; s.turn = {p:last, hired:null};
   log(s,M('log_tracks',CO(cs[0]),CO(cs[1]),CO(cs[2])));
-  s.stack.push({k:'setupPair', p:n-1});
+  log(s,M('log_first',pn(s,s.start)));
+  s.stack.push({k:'setupPair', p:last});
   run(s);
   return s;
 }
@@ -203,15 +204,15 @@ function step(s,t){
     const [a,b]=t.ids;
     ask(s,p,'place',M('q_place',pn(s,p)),[{label:M('o_asprof',cn(a)),prof:a,stu:b,cards:[a]},{label:M('o_asprof',cn(b)),prof:b,stu:a,cards:[b]}],t); return; }
   case 'setupNext':
-    if(p-1>=0){ s.turn.p=p-1; s.stack.push({k:'setupPair',p:p-1}); }
-    else { s.turn.p=0; s.stack.push({k:'setupBook',p:0}); }
+    { const n=s.players.length; if(p!==s.start){ const q=(p+n-1)%n; s.turn.p=q; s.stack.push({k:'setupPair',p:q}); }
+      else { s.turn.p=s.start; s.stack.push({k:'setupBook',p:s.start}); } }
     return;
   case 'setupBook':
     if(!pl.hand.length){ s.stack.push({k:'setupBookNext',p}); return; }
     ask(s,p,'setupBook',M('q_setupBook',pn(s,p)),pl.hand.map((b,k)=>({label:M('o_discard',effsTxt(discEff(s,p,b))),book:b,hk:k})),t); return;
   case 'setupBookNext':
-    if(p+1<s.players.length){ s.turn.p=p+1; s.stack.push({k:'setupBook',p:p+1}); }
-    else startTurn(s,s.start);
+    { const q=(p+1)%s.players.length; if(q!==s.start){ s.turn.p=q; s.stack.push({k:'setupBook',p:q}); }
+      else startTurn(s,s.start); }
     return;
   case 'eff': {
     if(t.ctx && (t.ctx.abort || (s.aborted&&s.aborted[t.ctx.id]))) return;
@@ -259,7 +260,7 @@ function step(s,t){
   case 'promo': {
     const opts=promoOptions(s,p);
     if(!opts.length){ log(s,M('log_noPromo',pn(s,p))); return; }
-    opts.unshift({label:M('o_noPromo'),pass:1});
+    if(!t.forced) opts.unshift({label:M('o_noPromo'),pass:1});
     ask(s,p,'promo',M('q_promo',pn(s,p)),opts,t); return; }
   case 'freePromo':
     if(t.w==='s1'){ if(pl.students.length) doPromo(s,p,'S',0,true); return; }
@@ -283,7 +284,7 @@ function step(s,t){
     if(c.act!=='any' && !promoOptions(s,p).length && !promoWithBooks(s,p)){ s.stack.push({k:'activate',p,type:c.act}); pl.nAct=(pl.nAct||0)+1; return; }
     const opts=[];
     (c.act==='any'?D.TYPES:[c.act]).forEach(ty=>opts.push({label:M('o_activate',TY(ty)),act:ty}));
-    opts.push(promoOptions(s,p).length?{label:M('o_promote'),promo:1}:{label:M('o_promoteNone'),none:1});
+    if(promoOptions(s,p).length) opts.push({label:M('o_promote'),promo:1});
     ask(s,p,'choice',M('q_choice',pn(s,p)),opts,t); return; }
   case 'activate': {
     const list=pl.profs.filter(co=>CARD[co.id].trig.includes(t.type)).map(co=>co.id);
@@ -376,7 +377,7 @@ function resolve(s,pd,o){
   case 'elim': { if(o.pass){ abortCtx(s,t.ctx); return; } const [co]=pl.students.splice(o.idx,1); log(s,M('log_elim',pl.name,cn(co.id))); return; }
   case 'choice':
     if(o.act){ s.stack.push({k:'activate',p,type:o.act}); pl.nAct=(pl.nAct||0)+1; }
-    else if(o.promo){ s.stack.push({k:'promo',p}); pl.nPromo=(pl.nPromo||0)+1; }
+    else if(o.promo){ s.stack.push({k:'promo',p,forced:1}); pl.nPromo=(pl.nPromo||0)+1; }
     return;
   case 'virt': pl.virt={t:o.t,l:o.l}; log(s,M('log_virt',pl.name,TY(o.t),LV(o.l))); return;
   case 'pickType': s.stack.push({k:'activate',p,type:o.type}); return;
@@ -594,7 +595,7 @@ function summary(s,src){
   return {t:Date.now(),src,n,cs:s.tracks.slice(),vpr:s.vpRounds||[],deckOut:!!s.deckOut,turns:s.turnNo,rounds:Math.round(s.turnNo/n*10)/10,start:s.start,
     rects:Object.assign({},s.rectSlotsInit||{}),objs:Object.fromEntries(Object.entries(s.objSlots).map(([k,o])=>[k,o.tile])),
     players:s.players.map((pl,k)=>{ const r=s.ranking.findIndex(x=>x.k===k);
-      return {seat:k,ai:pl.ai,lvl:pl.ai?(pl.lvl||3):undefined,vp:vp(s,k),rank:r+1,win:s.winners.includes(k),start:pl.start||[],g:pl.g||{},first:pl.first||{},nAct:pl.nAct||0,nPromo:pl.nPromo||0,slots:pl.hireSlot||[],letters:pl.lettersK||[],trav:pl.trav.slice(),hires:pl.hires||[],hcost:pl.hireCost||[],
+      return {seat:(k-(s.start||0)+n)%n,ai:pl.ai,lvl:pl.ai?(pl.lvl||3):undefined,vp:vp(s,k),rank:r+1,win:s.winners.includes(k),start:pl.start||[],g:pl.g||{},first:pl.first||{},nAct:pl.nAct||0,nPromo:pl.nPromo||0,slots:pl.hireSlot||[],letters:pl.lettersK||[],trav:pl.trav.slice(),hires:pl.hires||[],hcost:pl.hireCost||[],
         fin:{s:pl.students.map(c=>c.id),p:pl.profs.map(c=>c.id),e:pl.emer.map(c=>c.id),r:pl.rector?pl.rector.card.id:null},
         rect:pl.rector?pl.rector.tile:null,books:pl.played.slice(),em:Object.assign({},pl.emTok),bol:pl.bologna,cst:pl.constTok.length,
         cities:pl.citiesK||[],j:journeys(pl),coins:pl.coins,infl:pl.infl,promos:pl.promos||{S:0,E:0,R:0}}; })};
