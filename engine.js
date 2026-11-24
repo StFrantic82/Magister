@@ -551,7 +551,7 @@ function finish(s){
 }
 
 // ---------- IA ----------
-const DEFAULT_W={"dear":3,"rprog":0.685,"eprog":0.275,"race":0.08,"near":0.496,"lvl":1.335,"vp":9.705,"coin":0.628,"infl":0.722,"stu":2.558,"prof":5.529,"abil":0.862,"trig":0.692,"emer":9.22,"trav":0.597,"journey":1.958,"bookOk":3.763,"book":0.996,"emObj":6.696,"woa":0.501,"rector":11.714,"opp":3.836};
+const DEFAULT_W={"over":0.15,"objp":2,"rpow":1,"dear":3,"rprog":0.685,"eprog":0.275,"race":0.08,"near":0.496,"lvl":1.335,"vp":9.705,"coin":0.628,"infl":0.722,"stu":2.558,"prof":5.529,"abil":0.862,"trig":0.692,"emer":9.22,"trav":0.597,"journey":1.958,"bookOk":3.763,"book":0.996,"emObj":6.696,"woa":0.501,"rector":11.714,"opp":3.836};
 const W_VERSION=3;
 let GLOBAL_W=Object.assign({},DEFAULT_W);
 let AI_DEPTH=2;
@@ -600,10 +600,13 @@ function summary(s,src){
         cities:pl.citiesK||[],j:journeys(pl),coins:pl.coins,infl:pl.infl,promos:pl.promos||{S:0,E:0,R:0}}; })};
 }
 function W0(){ return GLOBAL_W; }
+// l'IA ne doit pas connaître l'ordre des pioches : on les mélange dans la copie qu'elle évalue
+function hiddenClone(s){ const c=clone(s); const sh=a=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }; if(c.deck) sh(c.deck); if(c.bookDeck) sh(c.bookDeck); return c; }
 function aiChooseGreedy(s,depth){
   depth=depth||0;
   const pd=s.pending, p=pd.p;
   if(pd.opts.length===1) return 0;
+  if(depth===0) s=hiddenClone(s);
   let best=0, bv=-Infinity;
   const lim = depth===0?pd.opts.length:Math.min(pd.opts.length,8);
   for(let k=0;k<lim;k++){
@@ -715,7 +718,7 @@ function aiChooseWeak(s,cfg){
   const pd=s.pending, p=pd.p, n=pd.opts.length;
   if(n<=1) return 0;
   if(Math.random()<cfg.rand) return Math.floor(Math.random()*n);
-  const sc=pd.opts.map((o,k)=>{ const c=clone(s); choose(c,k); return evalState(c,p); });
+  const hs=hiddenClone(s); const sc=pd.opts.map((o,k)=>{ const c=clone(hs); choose(c,k); return evalState(c,p); });
   const m=sc.reduce((a,b)=>a+b,0)/n, sd=Math.sqrt(sc.reduce((a,b)=>a+(b-m)*(b-m),0)/n)||1;
   const g=()=>{ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
   let best=0,bv=-Infinity; sc.forEach((x,k)=>{ const y=x+cfg.noise*sd*g(); if(y>bv){bv=y;best=k;} });

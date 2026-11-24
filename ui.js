@@ -136,8 +136,11 @@ function scheduleAI(){
 }
 
 
+const hidSig=s=>s?[s.deck.length,s.bookDeck.length,s.players.map(p=>p.hand.length+p.played.length).join(',')].join('|'):'';
 function canUndo(){
   if(!hist.length||!S||S.over) return false;
+  // pas d'annulation après une pioche (cartes ou Livres) : l'information cachée a été révélée
+  try{ const prev=JSON.parse(hist[hist.length-1]); if(prev.deck.length!==S.deck.length||prev.bookDeck.length!==S.bookDeck.length) return false; }catch(e){}
   if(mode==='online') return S.ver===myLastVer;
   return true;
 }
@@ -291,7 +294,8 @@ function renderTabs(sel){
   };
   if(pl.rector){ const ri=el('img',{src:'rect/'+pl.rector.tile+'.webp',class:'rtile',style:'width:96px;height:auto;aspect-ratio:139/200;object-fit:contain;align-self:flex-start;flex:0 0 auto;border-radius:6px;cursor:zoom-in'}); ri.onclick=()=>zoomImg('rect/'+pl.rector.tile+'.webp',t('ui_rRector'),t('R_'+pl.rector.tile)); u.appendChild(rowEl(t('ui_rRector'),[pl.rector.card],ri)); }
   u.appendChild(rowEl(t('ui_rEmer'),pl.emer)); u.appendChild(rowEl(t('ui_rProf'),pl.profs)); u.appendChild(rowEl(t('ui_rStu'),pl.students));
-  const showHand = mode==='local' ? !pl.ai : isMine(tab);
+  const nHum=S.players.filter(x=>!x.ai).length;
+  const showHand = mode==='local' ? (!pl.ai && (nHum<=1 || (S.pending&&S.pending.p===tab))) : isMine(tab);
   const h=el('div',{class:'hand'});
   const canAct=isMine(tab)&&!busy&&E.canBookAct(S,tab);
   const pdS=S.pending, setupPick=isMine(tab)&&!busy&&pdS&&(pdS.kind==='setupBook'||pdS.kind==='discardFor')&&pdS.p===tab;
@@ -493,9 +497,9 @@ function fbContext(){
 }
 async function fbSend(rec){
   if(db){ try{ await db.collection('feedback').doc().set(rec); return true; }catch(e){ console.warn(e); } }
-  const q=store.get('mag_fbq')||[]; q.push(rec); store.set('mag_fbq',q); return false;
+  let q=[]; try{ q=JSON.parse(store.get('mag_fbq')||'[]'); }catch(e){} if(!Array.isArray(q)) q=[]; q.push(rec); store.set('mag_fbq',JSON.stringify(q)); return false;
 }
-async function fbFlush(){ if(!db) return; const q=store.get('mag_fbq')||[]; if(!q.length) return; const rest=[]; for(const r of q){ try{ await db.collection('feedback').doc().set(r); }catch(e){ rest.push(r); } } store.set('mag_fbq',rest); }
+async function fbFlush(){ if(!db) return; let q=[]; try{ q=JSON.parse(store.get('mag_fbq')||'[]'); }catch(e){} if(!Array.isArray(q)) q=[]; if(!q.length) return; const rest=[]; for(const r of q){ try{ await db.collection('feedback').doc().set(r); }catch(e){ rest.push(r); } } store.set('mag_fbq',JSON.stringify(rest)); }
 setTimeout(fbFlush,15000);
 function openFeedback(){
   let cat=null, stars=0;
@@ -889,10 +893,10 @@ function renderStats(){
 }
 
 // =========== SIMULATIONS ===========
-let simCfg={games:50,players:2,depth:2,countries:[],gens:10,perGen:12,tPlayers:2,rush:true};
+let simCfg={games:50,players:2,depth:2,countries:[],gens:10,perGen:24,tPlayers:2,rush:true};
 let job=null; // {kind, total, done, results:[], log:[], worker}
 function makeWorker(){
-  try{ return new Worker('sim-worker.js?v=202611241617'); }catch(e){ return null; }
+  try{ return new Worker('sim-worker.js?v=1795545563'); }catch(e){ return null; }
 }
 function runJob(kind,manual){
   if(job&&job.running) return;

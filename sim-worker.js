@@ -30,13 +30,14 @@ self.onmessage=async ev=>{
     let best=Object.assign({},E.DEFAULT_W,m.weights||{}); let bestRounds=null;
     for(let gen=1; gen<=m.gens && !stop; gen++){
       const ch=mutate(best,m.sigma||0.25);
-      let chWins=0, games=0, rounds=0; const sums=[];
+      let chWins=0, games=0, rounds=0, expSum=0; const sums=[];
       for(let g=0; g<m.perGen && !stop; g++){
         // le challenger occupe une place sur deux, en alternant
         const ws=[...Array(m.players)].map((_,k)=>((k+g)%2===0)?ch:best);
         const s=play(m.players,pickCountries(m.countries),ws,(Math.random()*2**32)>>>0);
         games++; rounds+=s.turnNo/m.players;
         const chSeats=ws.map((w,k)=>w===ch?k:-1).filter(k=>k>=0);
+        expSum+=chSeats.length/m.players;
         const share=s.winners.filter(k=>chSeats.includes(k)).length/s.winners.length;
         chWins+=share;
         sums.push(E.summary(s,'train'));
@@ -44,12 +45,14 @@ self.onmessage=async ev=>{
         await new Promise(r=>setTimeout(r,0));
       }
       if(!games) break;
-      const expected=Math.ceil(m.players/2)/m.players; // part attendue à niveau égal
+      const expected=expSum/games; // part attendue à niveau égal, d'après les places réellement occupées
       const rate=chWins/games;
       const r=rounds/games; const target=m.target||11;
       if(bestRounds===null) bestRounds=r+0.5;
       // mode rush : on accepte aussi un challenger aussi fort qui raccourcit les parties vers la cible
-      const accepted = rate > expected + 0.06 || (m.rush && rate >= expected - 0.03 && Math.abs(r-target) < Math.abs(bestRounds-target) - 0.3);
+      // seuil statistique (~95 %, unilatéral) pour ne pas adopter un challenger seulement chanceux
+      const margin=1.65*Math.sqrt(expected*(1-expected)/games);
+      const accepted = rate > expected + margin || (m.rush && rate >= expected && Math.abs(r-target) < Math.abs(bestRounds-target) - 0.3);
       if(accepted){ best=ch; bestRounds=r; }
       self.postMessage({type:'gen',gen,rate,expected,accepted,rounds:rounds/games,best,sums});
     }
