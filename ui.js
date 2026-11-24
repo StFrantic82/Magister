@@ -239,8 +239,11 @@ function render(){
   ['N','R','A','M'].forEach(ty=>{
     const o=S.objSlots[ty]; const who=S.players.filter(pl=>pl.emTok[ty]!==undefined).map(pl=>pl.name+' ('+pl.emTok[ty]+')');
     const im=el('img',{src:'obj/'+o.tile+'.webp',alt:''}); im.onclick=()=>zoomImg('obj/'+o.tile+'.webp',t('ui_objOf',TN(ty)),t('ui_objTxt',t('O_'+o.tile),TN(ty)));
-    os.appendChild(el('div',{class:'tslot t-'+ty},im,el('div',{},el('b',{},icon('t_'+ty,22,'margin-right:5px;width:22px;cursor:default'),TN(ty)),el('br'),t('O_'+o.tile),
-      el('div',{class:'vps'},o.stack.map(v=>el('img',{src:'tok/vp'+v+'.webp',alt:v+' '+t('ui_vp')}))), who.length?el('div',{class:'muted'},t('ui_claimed',who.join(', '))):null)));
+    const clp=S.players.filter(pl=>pl.emTok[ty]!==undefined), me=(typeof uniTab!=='undefined'?uniTab:null);
+    const sl=el('div',{class:'tslot t-'+ty+(clp.length?' claimed':'')},im,el('div',{},el('b',{},icon('t_'+ty,22,'margin-right:5px;width:22px;cursor:default'),TN(ty)),el('br'),t('O_'+o.tile),
+      el('div',{class:'vps'},o.stack.map(v=>el('img',{src:'tok/vp'+v+'.webp',alt:v+' '+t('ui_vp')}))), who.length?el('div',{class:'muted'},t('ui_claimed',who.join(', '))):null));
+    if(clp.length){ sl.style.borderColor=clp[0].color; sl.style.boxShadow='0 0 0 2px '+clp[0].color+', 0 0 12px '+clp[0].color+'88'; sl.appendChild(el('div',{class:'clbadge'},clp.map(pl=>el('span',{class:'cldot',style:'background:'+pl.color,title:pl.name},'✓')))); }
+    os.appendChild(sl);
   });
   // lettres & jetons
   const lt=$('#letters'); lt.innerHTML='';
@@ -264,6 +267,8 @@ function renderTabs(sel){
     el('span',{title:t('ui_coins')},el('span',{class:'coin'},pl.coins)), el('span',{title:t('ui_infl')},el('span',{class:'seal'},pl.infl)),
     el('span',{},icon('laurel',20,'margin-right:4px'),E.vp(S,tab)+' '+t('ui_vp')+(vpB.length?' ('+vpB.join(', ')+')':'')),
     el('span',{},icon('trav',20,'margin-right:4px'),pl.trav.map((x,i)=>E.TR[i]+':'+x).join(' ')+' · '+pl.cities+' '+t('ui_cities')),
+    (()=>{ const all=[].concat(pl.students,pl.profs,pl.emer,pl.rector?[pl.rector.card]:[]), n=[0,0,0,0]; all.forEach(co=>n[CARD[co.id].lvl]++);
+      return el('span',{class:'lvls'},[1,2,3].map(l=>el('span',{title:t('L_'+l),style:'margin-right:8px;white-space:nowrap'+(n[l]?'':';opacity:.4')},icon('lv_'+l,20,'margin-right:2px'),String(n[l])))); })(),
     (()=>{ const wl=E.woaList(pl), cnt={}; wl.forEach(w=>cnt[w]=(cnt[w]||0)+1); return el('span',{class:'woas'},['ARC','MUS','PAI','SCU','THE'].map(w=>el('span',{title:WN(w),style:'margin-right:8px;white-space:nowrap'+(cnt[w]?'':';opacity:.4')},icon('w_'+w,20,'margin-right:2px'),String(cnt[w]||0))),'('+wl.length+')'); })(),
     E.wild(pl)?el('span',{},t('ui_wild')):null));
   const rowEl=(label,arr,extra)=>{
@@ -305,7 +310,7 @@ function renderDecide(){
   const d=$('#decide'); d.innerHTML='';
   if(S.over){
     const tb=el('table',{},el('tr',{},el('th',{},'#'),el('th',{},t('ui_player')),el('th',{},t('ui_vp')),el('th',{},t('ui_rector')),el('th',{},t('ui_emer')),el('th',{},t('ui_profs'))));
-    S.ranking.forEach((r,i)=>tb.appendChild(el('tr',{},el('td',{},i+1),el('td',{},S.players[r.k].name),el('td',{},r.vp),el('td',{},r.r?t('ui_yes'):'—'),el('td',{},r.e),el('td',{},r.pr))));
+    S.ranking.forEach((r,i)=>tb.appendChild(el('tr',{},el('td',{},i+1),el('td',{},S.players[r.k].name),el('td',{},r.vp),el('td',{},r.r?'1':'0'),el('td',{},r.e),el('td',{},r.pr))));
     const names=S.winners.map(k=>S.players[k].name).join(' & ');
     d.appendChild(el('div',{class:'endbox'},el('div',{class:'q'},t(S.winners.length>1?'ui_winsN':'ui_wins',names)),tb,
       el('button',{class:'primary',onclick:goHome},t('ui_menu'))));
