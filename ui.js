@@ -104,7 +104,7 @@ $('#startLocal').onclick=()=>{
 };
 $('#resumeLocal').onclick=()=>{ try{ S=JSON.parse(store.get('mag_local')); if(S.v!==2) throw 0; startLocal(); }catch(e){ store.del('mag_local'); checkResume(); } };
 function startLocal(){ hist=[]; mode='local'; mySeats=S.players.map((p,k)=>p.ai?-1:k).filter(k=>k>=0); tab=null; showGame(); afterChange(); }
-function goHome(){ $('#coach').classList.add('hidden'); hist=[]; if(tableUnsub){ tableUnsub(); tableUnsub=null; } clearTimeout(aiTimer); S=null; mode=null; $('#game').classList.add('hidden'); $('#decide').classList.add('hidden'); $('#lobby').classList.remove('hidden'); checkResume(); if(table) renderTable(); setView('play'); }
+function goHome(){ if(tourOn) endTour(); $('#coach').classList.add('hidden'); hist=[]; if(tableUnsub){ tableUnsub(); tableUnsub=null; } clearTimeout(aiTimer); S=null; mode=null; $('#game').classList.add('hidden'); $('#decide').classList.add('hidden'); $('#lobby').classList.remove('hidden'); checkResume(); if(table) renderTable(); setView('play'); }
 $('#quit').onclick=()=>{ if(!S||S.over){ goHome(); return; } zoomShow(el('div',{class:'zt'},el('h3',{},t('ui_quitQ')),el('p',{},t(mode==='local'?'ui_quitLocal':'ui_quitOnline')),el('div',{class:'row-f',style:'justify-content:flex-end'},el('button',{onclick:zoomHide},t('ui_cancel')),el('button',{class:'primary',onclick:()=>{ zoomHide(); goHome(); }},t('ui_quitYes'))))); };
 function checkResume(){ let ok=false; try{ const r=JSON.parse(store.get('mag_local')); ok=r&&r.v===2&&!r.over; }catch(e){} $('#resumeLocal').classList.toggle('hidden',!ok); }
 function showGame(){ $('#lobby').classList.add('hidden'); $('#game').classList.remove('hidden'); $('#decide').classList.remove('hidden'); window.scrollTo(0,0); }
@@ -589,6 +589,8 @@ function renderTuto(){
   const box=$('#tuto'); box.innerHTML='';
   const st=TUTO[tutoStep];
   box.appendChild(el('div',{class:'orn'},el('span',{},t('tu_title'))));
+  box.appendChild(el('div',{class:'pcard tourcard'},el('div',{},el('h3',{},t('tour_t')),el('p',{},t('tour_intro'))),el('button',{class:'primary',onclick:startTutoGame},t('tour_btn'))));
+  box.appendChild(el('h3',{class:'fell',style:'color:var(--goldA);font-weight:400;font-size:22px;margin:26px 0 0;text-align:center'},t('tu_rules')));
   const card=el('div',{class:'pcard'},
     el('div',{class:'tuto'},el('div',{class:'vis'},st.vis()),el('div',{},el('div',{class:'muted'},t('tu_step',tutoStep+1,TUTO.length)),el('h3',{},t('tu_'+st.k+'_t')),el('p',{},...richTxt(t('tu_'+st.k+'_x'))))),
     el('div',{class:'dots'},TUTO.map((_,i)=>el('span',{class:i===tutoStep?'on':'',onclick:()=>{tutoStep=i;renderTuto();}}))),
@@ -601,13 +603,46 @@ function startTutoGame(){
   const me=seats[0]&&seats[0].name||t('ui_me');
   S=E.newGame({players:[{name:me,ai:false,color:seats[0]&&seats[0].color||PALETTE[0]},{name:'Flaminia (IA)',ai:true,lvl:3,color:LVLCOL[3][0]}],countries:['ITA','FRA','ENG'],seed:(Math.random()*2**32)>>>0});
   S.tutorial=true; coachSeen={}; coachOn=true;
-  startLocal();
+  startLocal(); setTimeout(()=>startTour(0),700);
 }
+// =========== VISITE GUIDÉE DE L'INTERFACE ===========
+const TOUR=['#score','#rslots','#oslots','#row .decks','#row .slot','#tracks','#tabs','#uni .res','#uni .urow','#uni .bhelp','#uni .hand','#letters','#log','#decide','#quit'];
+let tourOn=false, tourI=0;
+function tourEls(i){ return [...document.querySelectorAll(TOUR[i])].filter(e=>{ const r=e.getBoundingClientRect(); return r.width>0&&r.height>0; }); }
+function startTour(i){ tourOn=true; tourI=i||0; let o=$('#tour'); if(!o){ o=el('div',{id:'tour'},el('div',{id:'tourHole'}),el('div',{id:'tourBub'})); document.body.appendChild(o); }
+  o.classList.remove('hidden'); renderCoach(); showTourStep(); }
+function endTour(){ tourOn=false; const o=$('#tour'); if(o) o.classList.add('hidden'); window.scrollTo({top:0,behavior:'smooth'}); renderCoach(); }
+function showTourStep(){
+  while(tourI<TOUR.length && !tourEls(tourI).length) tourI++;
+  if(tourI>=TOUR.length){ endTour(); return; }
+  const els=tourEls(tourI); const fixed=els.some(e=>getComputedStyle(e).position==='fixed');
+  if(!fixed) els[0].scrollIntoView({block:'center',behavior:'smooth'});
+  const b=$('#tourBub'); b.innerHTML=''; const last=tourI===TOUR.length-1;
+  b.append(el('div',{class:'tstep'},(tourI+1)+' / '+TOUR.length),el('h4',{},t('tour_'+(tourI+1)+'_t')),el('p',{},t('tour_'+(tourI+1)+'_x')),
+    el('div',{class:'row-f'},el('button',{class:'small',onclick:endTour},t('tour_skip')),el('span',{style:'flex:1'}),
+      tourI>0?el('button',{class:'small',onclick:()=>{ do{tourI--;}while(tourI>0&&!tourEls(tourI).length); showTourStep(); }},t('tour_prev')):null,
+      el('button',{class:'small primary',onclick:()=>{ if(last) endTour(); else { tourI++; showTourStep(); } }},t(last?'tour_done':'tour_next'))));
+  setTimeout(placeTour,fixed?0:450);
+}
+function placeTour(){
+  if(!tourOn) return; const els=tourEls(tourI); if(!els.length) return;
+  let L=1e9,T=1e9,R=-1e9,B=-1e9; els.forEach(e=>{ const r=e.getBoundingClientRect(); L=Math.min(L,r.left);T=Math.min(T,r.top);R=Math.max(R,r.right);B=Math.max(B,r.bottom); });
+  const p=6, vw=innerWidth, vh=innerHeight; T=Math.max(T,4-p); B=Math.min(B,vh-4+p);
+  const h=$('#tourHole'); Object.assign(h.style,{left:(L-p)+'px',top:(T-p)+'px',width:(R-L+2*p)+'px',height:(B-T+2*p)+'px'});
+  const bb=$('#tourBub'), bw=Math.min(360,vw-24); bb.style.width=bw+'px'; const bh=bb.offsetHeight;
+  let x,y;
+  if(B+p+12+bh<vh){ y=B+p+12; x=L; } else if(T-p-12-bh>0){ y=T-p-12-bh; x=L; }
+  else if(R+p+12+bw<vw){ x=R+p+12; y=T; } else { x=L-p-12-bw; y=T; }
+  x=Math.max(12,Math.min(vw-bw-12,x)); y=Math.max(12,Math.min(vh-bh-12,y));
+  bb.style.left=x+'px'; bb.style.top=y+'px';
+}
+addEventListener('resize',placeTour); addEventListener('scroll',()=>{ if(tourOn) placeTour(); },true);
+
 let coachSeen={}, coachOn=true;
 function renderCoach(){
   const c=$('#coach');
   const pd=S&&!S.over&&S.pending;
-  if(!S||!S.tutorial||!coachOn||!pd||!isMine(pd.p)||coachSeen[pd.kind]||!DICT.fr['tip_'+pd.kind]){ c.classList.add('hidden'); return; }
+  if(!S||!S.tutorial||!coachOn||tourOn||!pd||!isMine(pd.p)||coachSeen[pd.kind]||!DICT.fr['tip_'+pd.kind]){ c.classList.add('hidden'); return; }
   c.innerHTML='';
   c.appendChild(el('div',{},el('b',{},'💡 '+t('tu_coach')+' — '),t('tip_'+pd.kind)));
   c.appendChild(el('div',{class:'row-f'},el('button',{class:'small',onclick:()=>{coachOn=false;renderCoach();}},t('tip_hide')),el('button',{class:'small primary',onclick:()=>{coachSeen[pd.kind]=1;renderCoach();}},t('tip_ok'))));
