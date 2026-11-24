@@ -242,7 +242,7 @@ function render(){
     const clp=S.players.filter(pl=>pl.emTok[ty]!==undefined), me=(typeof uniTab!=='undefined'?uniTab:null);
     const sl=el('div',{class:'tslot t-'+ty+(clp.length?' claimed':'')},im,el('div',{},el('b',{},icon('t_'+ty,22,'margin-right:5px;width:22px;cursor:default'),TN(ty)),el('br'),t('O_'+o.tile),
       el('div',{class:'vps'},o.stack.map(v=>el('img',{src:'tok/vp'+v+'.webp',alt:v+' '+t('ui_vp')}))), who.length?el('div',{class:'muted'},t('ui_claimed',who.join(', '))):null));
-    if(clp.length){ sl.style.borderColor=clp[0].color; sl.style.boxShadow='0 0 0 2px '+clp[0].color+', 0 0 12px '+clp[0].color+'88'; sl.appendChild(el('div',{class:'clbadge'},clp.map(pl=>el('span',{class:'cldot',style:'background:'+pl.color,title:pl.name},'✓')))); }
+    if(clp.length){ sl.appendChild(el('div',{class:'clbadge'},clp.map(pl=>el('span',{class:'cldot',style:'background:'+pl.color,title:pl.name},'✓')))); }
     os.appendChild(sl);
   });
   // lettres & jetons
