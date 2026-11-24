@@ -244,7 +244,10 @@ function render(){
   });
   // lettres & jetons
   const lt=$('#letters'); lt.innerHTML='';
-  S.letters.forEach(id=>{ const L=D.letters.find(x=>x.id===id); lt.appendChild(el('img',{src:'let/'+id+'.webp',title:L.woa?WN(L.woa):tm(E.effsTxt(L.g))})); });
+  const Ls=S.letters.map(id=>D.letters.find(x=>x.id===id)), res=Ls.filter(L=>!L.woa), wo=Ls.filter(L=>L.woa);
+  res.forEach(L=>lt.appendChild(el('img',{src:'let/'+L.id+'.webp',title:tm(E.effsTxt(L.g))})));
+  if(res.length&&wo.length&&res.length%5) lt.appendChild(el('span',{class:'lgap'}));
+  wo.forEach(L=>lt.appendChild(el('img',{src:'let/'+L.id+'.webp',title:WN(L.woa)})));
   if(!S.letters.length) lt.textContent=t('ui_none');
   const tk=[]; if(S.tracks.includes('ITA')) tk.push(t('ui_bologna',S.bologna));
   if(S.tracks.includes('BYZ')) tk.push(t('ui_const',S.constTok.map(TN).join(', ')||'—'));
