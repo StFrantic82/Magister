@@ -364,7 +364,7 @@ function renderDecide(){
       el('button',{class:'primary',onclick:goHome},t('ui_menu'))));
     return;
   }
-  const pd=S.pending; if(!pd) return;
+  const pd=S.pending; d.classList.toggle('bubble',!!pd&&['pair','setupBook'].includes(pd.kind)); if(!pd) return;
   if(!isMine(pd.p)){
     d.appendChild(el('div',{class:'wait'},el('span',{class:'spin'}),t(S.players[pd.p].ai?'ui_thinking':'ui_waiting',S.players[pd.p].name),canUndo()?el('button',{class:'small undo',onclick:undo},'↶ '+t('ui_undo')):null));
     return;
