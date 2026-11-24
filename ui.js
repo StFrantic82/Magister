@@ -161,7 +161,7 @@ function boardHelp(pl){
       row('prof','emer',[C(Math.max(0,6-red)),' + ',I('#')]),
       row('prof','rect',[C(red?'#−2':'#'),' + ',I(8)]),
       el('span',{class:'muted',style:'font-size:12px'},t('ui_promoPosNote'))),
-    el('div',{},el('b',{},t('ui_boardAct')+' '),D.TYPES.map(ty=>el('span',{class:'bh'},icon('t_'+ty,20,'width:20px'),' ',tm(E.effsTxt(D.BOARD[ty]))))));
+    el('div',{},el('b',{},t('ui_boardAct')+' '),D.TYPES.map(ty=>el('span',{class:'bh',title:tm(E.effsTxt(D.BOARD[ty]))},icon('t_'+ty,20,'width:20px'),'→',...D.BOARD[ty].map(fx=>fx.b?icon('book',22,''):fx.c?C(fx.c):fx.i?I(fx.i):fx.t?el('span',{style:'display:inline-flex;align-items:center'},icon('trav',22,''),el('b',{},fx.t)):el('span',{},tm(E.effsTxt([fx]))))))));
 }
 function hasRect2a(pl){ return pl.rector&&pl.rector.tile==='2a'; }
 document.addEventListener('click',function bkOutside(){ document.querySelectorAll('.bk.open').forEach(x=>x.classList.remove('open')); });
