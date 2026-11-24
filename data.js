@@ -12,7 +12,7 @@ const C=(id,name,type,lvl,woa,trig,H,act,A)=>({id,name,type,lvl,woa,trig:trig.sp
 const per=(k,v,g)=>({per:{k,v},g});
 const cards=[
 // ---- Départ (niveau 1)
-C(1,'Matthias','A',0,'ARC','A',[{c:1},{i:1}],null,[{i:1}]),
+C(1,'Matthias','A',0,'ARC','A',[{c:1},{i:1}],null,[{c:1}]),
 C(2,'Isabella','A',0,'THE','A',[{i:1}],null,[{r:1}]),
 C(3,'Guido','A',0,'MUS','A',[{c:2}],null,[{t:1}]),
 C(4,'Margot','A',0,'PAI','AM',[{i:1}],null,[{c:1}]),
