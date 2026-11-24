@@ -272,7 +272,7 @@ function renderTabs(sel){
     if(!arr.length&&!extra) cs.appendChild(el('span',{class:'muted'},'—'));
     return el('div',{class:'urow'},el('div',{class:'rl'},label),cs);
   };
-  if(pl.rector){ const ri=el('img',{src:'rect/'+pl.rector.tile+'.webp',style:'width:80px;border-radius:6px;cursor:zoom-in'}); ri.onclick=()=>zoomImg('rect/'+pl.rector.tile+'.webp',t('ui_rRector'),t('R_'+pl.rector.tile)); u.appendChild(rowEl(t('ui_rRector'),[pl.rector.card],ri)); }
+  if(pl.rector){ const ri=el('img',{src:'rect/'+pl.rector.tile+'.webp',class:'rtile',style:'width:96px;height:auto;aspect-ratio:139/200;object-fit:contain;align-self:flex-start;flex:0 0 auto;border-radius:6px;cursor:zoom-in'}); ri.onclick=()=>zoomImg('rect/'+pl.rector.tile+'.webp',t('ui_rRector'),t('R_'+pl.rector.tile)); u.appendChild(rowEl(t('ui_rRector'),[pl.rector.card],ri)); }
   u.appendChild(rowEl(t('ui_rEmer'),pl.emer)); u.appendChild(rowEl(t('ui_rProf'),pl.profs)); u.appendChild(rowEl(t('ui_rStu'),pl.students));
   const showHand = mode==='local' ? !pl.ai : isMine(tab);
   const h=el('div',{class:'hand'});
@@ -322,6 +322,7 @@ function renderDecide(){
   if(pd.kind==='setupBook'&&isMine(pd.p)) d.appendChild(el('div',{class:'hint'},icon('book',22,'margin-right:6px'),t('ui_setupBookHint')));
   pd.opts.forEach((o,k)=>{ if(filter&&!filter.includes(k)) return; if(pd.kind==='setupBook') return; if(hideBooks&&(o.play!==undefined||o.disc!==undefined)&&(pd.kind==='turn'||pd.kind==='end')) return;
     const b=el('button',{class:(o.endTurn?'primary':'')+(THUMB[pd.kind]&&o.cards?' cbtn':''),onclick:()=>act(k)});
+    if(pd.kind==='letter'&&o.letter){ b.classList.add('lbtn'); b.title=tm(o.label); b.appendChild(el('img',{src:'let/'+o.letter+'.webp',alt:tm(o.label)})); opts.appendChild(b); return; }
     if(THUMB[pd.kind]&&o.cards){ const row=el('div',{class:'cthumbs'}); o.cards.forEach(id=>row.appendChild(el('img',{src:'cards/'+id+'.webp',alt:CARD[id].name}))); b.appendChild(row); }
     b.appendChild(el('span',{},tm(o.label))); opts.appendChild(b); });
   if(filter) opts.appendChild(el('button',{onclick:()=>{filter=null;renderDecide();}},t('ui_allOpts')));
@@ -862,7 +863,7 @@ function renderStats(){
 let simCfg={games:50,players:2,depth:2,countries:[],gens:10,perGen:12,tPlayers:2,rush:true};
 let job=null; // {kind, total, done, results:[], log:[], worker}
 function makeWorker(){
-  try{ return new Worker('sim-worker.js?v=202611241550'); }catch(e){ return null; }
+  try{ return new Worker('sim-worker.js?v=202611241617'); }catch(e){ return null; }
 }
 function runJob(kind){
   if(job&&job.running) return;
