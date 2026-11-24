@@ -195,6 +195,17 @@ function cardClick(id){
   }
   zoomCard(id);
 }
+function cardRecap(id){
+  const c=CARD[id];
+  const then = c.act ? (c.act==='any'?t('ui_zActAny'):t('ui_zAct',TN(c.act))) : (c.id<=16?t('ui_zStart'):t('ui_zNoAct'));
+  return el('div',{class:'crecap'},
+    el('h4',{},c.name),
+    el('div',{class:'cr1'},icon('t_'+c.type,18,'margin-right:4px;width:18px'),TN(c.type)+' — '+LN(c.lvl)+(c.woa?' — '+WN(c.woa):'')),
+    el('p',{},el('b',{},t('ui_zHire')+' : '),tm(E.effsTxt(c.H))||'—'),
+    el('p',{},el('b',{},t('ui_zThen')+' : '),then),
+    el('p',{},el('b',{},t('ui_zAbility')+' : '),tm(E.effsTxt(c.A))||'—'),
+    el('p',{class:'muted'},t('ui_zTrig',c.trig.map(TN).join(', '))));
+}
 function zoomCard(id){
   const c=CARD[id];
   const then = c.act ? (c.act==='any'?t('ui_zActAny'):t('ui_zAct',TN(c.act))) : (c.id<=16?t('ui_zStart'):t('ui_zNoAct'));
@@ -1025,13 +1036,19 @@ function simLive(){
   function place(el,src){
     const isCard=/cards\/|book\//.test(src);
     const w=isCard?210:/city\//.test(src)?170:190;
-    pv.innerHTML=''; const im=document.createElement('img'); im.src=src; im.style.width=w+'px'; pv.appendChild(im);
-    const r=el.getBoundingClientRect(), vw=innerWidth, vh=innerHeight;
-    if(r.width>=w*0.65){ pv.style.display='none'; return; } // déjà assez grande
-    const h=isCard?w*1.48:w*1.1;
-    let x=r.right+12; if(x+w>vw-8) x=r.left-12-w; if(x<8) x=Math.min(vw-w-8,Math.max(8,r.left));
+    pv.innerHTML=''; const r=el.getBoundingClientRect(), vw=innerWidth, vh=innerHeight;
+    const cm=src.match(/cards\/(\d+)\.webp/), cid=cm?+cm[1]:0;
+    const big=r.width>=w*0.65; // déjà assez grande : on n'affiche que le récapitulatif
+    if(big&&!cid){ pv.style.display='none'; return; }
+    if(!big){ const im=document.createElement('img'); im.src=src; im.style.width=w+'px'; pv.appendChild(im); }
+    let tw=big?0:w;
+    if(cid&&CARD[cid]){ const rc=cardRecap(cid); pv.appendChild(rc); tw+=250; }
+    pv.style.display='flex';
+    const h=Math.max(isCard&&!big?w*1.48:0, pv.offsetHeight||200);
+    const ww=tw||w;
+    let x=r.right+12; if(x+ww>vw-8) x=r.left-12-ww; if(x<8) x=Math.min(vw-w-8,Math.max(8,r.left));
     let y=r.top+r.height/2-h/2; y=Math.max(8,Math.min(vh-h-8,y));
-    pv.style.left=x+'px'; pv.style.top=y+'px'; pv.style.display='block';
+    pv.style.left=x+'px'; pv.style.top=y+'px'; pv.style.display='flex';
   }
   document.addEventListener('mouseover',e=>{ const src=srcOf(e.target); if(!src){ if(cur&&!e.target.closest('.cell.city')){ cur=null; pv.style.display='none'; } return; } const el=e.target.closest('.cell.city')||e.target; if(el===cur) return; cur=el; place(el,src); });
   document.addEventListener('scroll',()=>{ cur=null; pv.style.display='none'; },true);
