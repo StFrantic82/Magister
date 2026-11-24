@@ -42,6 +42,8 @@ let db=null, myUid=null, table=null, tableUnsub=null, tableCode=null, onlineFail
 // =========== ACCUEIL ===========
 const AINAMES=['Flaminia (IA)','Virginio (IA)','Marco (IA)'];
 const LVLNAME={3:'Flaminia',2:'Virginio',1:'Marco'};
+const LVLCOL={3:['#d4a017','#b8860b','#e8c15a'],2:['#a9b2bc','#7f8a96','#c9d0d6'],1:['#b06a2c','#8c4f1d','#c98a52']};
+function aiColor(lvl,taken,self){ const L=LVLCOL[lvl]||LVLCOL[3]; return L.find(c=>!taken.some(x=>x!==self&&x.color===c))||L[0]; }
 function aiName(lvl,taken,self){ const base=LVLNAME[lvl]||'IA'; let n=base+' (IA)', k=2; while(taken.some(x=>x!==self&&x.name===n)){ n=base+' '+k+' (IA)'; k++; } return n; }
 function isAutoName(n){ return !n||/^(Flaminia|Virginio|Marco)( \d+)? \(IA\)$/.test(n)||n==='IA'; }
 let seats=[{name:store.get('mag_name')||'',ai:false},{name:'',ai:true}];
@@ -51,15 +53,16 @@ function renderSeats(){
   seats.forEach((s,k)=>{
     if(s.ai&&!s.lvl) s.lvl=defLvl();
     if(s.ai&&isAutoName(s.name)) s.name=aiName(s.lvl,seats,s);
-    if(!s.color||seats.some((o,j)=>j<k&&o.color===s.color)) s.color=PALETTE.find(c=>!seats.some((o,j)=>j!==k&&o.color===c));
+    if(s.ai&&!s.manCol) s.color=aiColor(s.lvl,seats,s);
+    else if(!s.color||seats.some((o,j)=>j<k&&o.color===s.color)) s.color=PALETTE.find(c=>!seats.some((o,j)=>j!==k&&o.color===c));
     box.appendChild(el('div',{class:'pseat'},
       el('button',{class:'tok',title:t('ui_color'),style:'background:'+s.color+';color:'+tokTxt(s.color),onclick:()=>{ palOpen=palOpen===k?-1:k; renderSeats(); }},k+1),
       el('input',{value:s.name,placeholder:k===0?t('ui_me'):t('ui_player1')+' '+(k+1),maxlength:18,oninput:e=>{s.name=e.target.value;}}),
       el('div',{class:'tog'},
         el('button',{class:s.ai?'':'on',onclick:()=>{ if(s.ai){ s.ai=false; if(/\(IA\)/.test(s.name)) s.name=''; renderSeats(); } }},t('ui_human')),
         el('button',{class:s.ai?'on':'',onclick:()=>{ if(!s.ai){ s.ai=true; s.lvl=s.lvl||defLvl(); if(isAutoName(s.name)) s.name=aiName(s.lvl,seats,s); renderSeats(); } }},t('ui_ai'))),
-      s.ai?lvlTog(s.lvl||defLvl(),v=>{ s.lvl=v; store.set('mag_ailvl',v); if(isAutoName(s.name)) s.name=aiName(v,seats,s); renderSeats(); }):null));
-    if(palOpen===k) box.appendChild(colorRow(s.color,seats.filter((o,j)=>j!==k).map(o=>o.color),c=>{ s.color=c; palOpen=-1; renderSeats(); }));
+      s.ai?lvlTog(s.lvl||defLvl(),v=>{ s.lvl=v; s.manCol=false; store.set('mag_ailvl',v); if(isAutoName(s.name)) s.name=aiName(v,seats,s); renderSeats(); }):null));
+    if(palOpen===k) box.appendChild(colorRow(s.color,seats.filter((o,j)=>j!==k).map(o=>o.color),c=>{ s.color=c; s.manCol=true; palOpen=-1; renderSeats(); }));
   });
 }
 function defLvl(){ return +(store.get('mag_ailvl')||3); }
@@ -418,13 +421,13 @@ function renderTable(){
   const host=table.host===myUid;
   b.appendChild(el('div',{},t('ui_code'),el('span',{class:'code'},table.code),' ',el('span',{class:'muted'},t('ui_shareCode'))));
   table.seats.forEach((s,k)=>{ const mine=s.uid===myUid||(host&&s.ai); const col=s.color||SEATCOL[k]; b.appendChild(el('div',{class:'seat'},el(mine?'button':'span',{class:'dot',style:'background:'+col+(mine?';width:22px;height:22px;cursor:pointer;padding:0':''),title:mine?t('ui_color'):null,onclick:mine?()=>{ palOpen=palOpen===100+k?-1:100+k; renderTable(); }:null}),s.name+(s.ai?t('ui_aiTag'):'')+(s.uid===table.host?t('ui_hostTag'):'')+(s.uid===myUid?t('ui_you'):''),
-    s.ai?(host&&table.status==='lobby'?lvlTog(s.lvl||3,async v=>{ store.set('mag_ailvl',v); await db.doc('tables/'+table.code).update({seats:table.seats.map((o,j)=>j===k?Object.assign({},o,{lvl:v},isAutoName(o.name)?{name:aiName(v,table.seats,o)}:{}):o)}); }):el('span',{class:'muted'},' · '+t('ui_lvl'+(s.lvl||3)))):null,
+    s.ai?(host&&table.status==='lobby'?lvlTog(s.lvl||3,async v=>{ store.set('mag_ailvl',v); await db.doc('tables/'+table.code).update({seats:table.seats.map((o,j)=>j===k?Object.assign({},o,{lvl:v,color:aiColor(v,table.seats,o)},isAutoName(o.name)?{name:aiName(v,table.seats,o)}:{}):o)}); }):el('span',{class:'muted'},' · '+t('ui_lvl'+(s.lvl||3)))):null,
     host&&k>0?el('button',{class:'small',onclick:async()=>{ await db.doc('tables/'+table.code).update({seats:table.seats.filter((_,j)=>j!==k)}); }},t('ui_remove')):null));
     if(palOpen===100+k && table.status==='lobby') b.appendChild(colorRow(col,table.seats.filter((o,j)=>j!==k).map((o,j)=>o.color||SEATCOL[j]),async c=>{ palOpen=-1; const ns=table.seats.map((o,j)=>j===k?Object.assign({},o,{color:c}):o); await db.doc('tables/'+table.code).update({seats:ns}); })); });
   if(table.status==='lobby'){
     if(host){
       b.appendChild(el('div',{class:'row-f',style:'margin-top:6px'},
-        el('button',{disabled:table.seats.length>=4?'':null,onclick:async()=>{ const n=aiName(defLvl(),table.seats,null); await db.doc('tables/'+table.code).update({seats:[...table.seats,{name:n,uid:null,ai:true,lvl:defLvl()}]}); }},t('ui_addAI')),
+        el('button',{disabled:table.seats.length>=4?'':null,onclick:async()=>{ const n=aiName(defLvl(),table.seats,null), nc=aiColor(defLvl(),table.seats,null); await db.doc('tables/'+table.code).update({seats:[...table.seats,{name:n,uid:null,ai:true,lvl:defLvl(),color:nc}]}); }},t('ui_addAI')),
         el('button',{class:'primary',disabled:table.seats.length<2?'':null,onclick:startOnline},t('ui_start'))));
       b.appendChild(el('div',{style:'margin-top:8px'},el('div',{class:'flab row-f',style:'justify-content:space-between'},el('span',{},t('ui_tracks')),el('button',{class:'dice',onclick:()=>randomCountries('#cboxO')},el('span',{class:'die'},'⚄'),el('span',{},t('ui_random')))),el('div',{class:'muted'},t('ui_tracksSub')),el('div',{class:'cbox',id:'cboxO'})));
       countryBoxes('#cboxO');
@@ -555,7 +558,7 @@ function renderTuto(){
 }
 function startTutoGame(){
   const me=seats[0]&&seats[0].name||t('ui_me');
-  S=E.newGame({players:[{name:me,ai:false,color:seats[0]&&seats[0].color||PALETTE[0]},{name:'Flaminia (IA)',ai:true,color:PALETTE[1]}],countries:['ITA','FRA','ENG'],seed:(Math.random()*2**32)>>>0});
+  S=E.newGame({players:[{name:me,ai:false,color:seats[0]&&seats[0].color||PALETTE[0]},{name:'Flaminia (IA)',ai:true,lvl:3,color:LVLCOL[3][0]}],countries:['ITA','FRA','ENG'],seed:(Math.random()*2**32)>>>0});
   S.tutorial=true; coachSeen={}; coachOn=true;
   startLocal();
 }
