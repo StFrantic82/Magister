@@ -1029,7 +1029,7 @@ function simLive(){
   let cur=null;
   function srcOf(t){
     if(!t||t.closest('#zoom')||t.closest('#hoverPrev')||t.classList&&t.classList.contains('nopv')) return null;
-    if(t.tagName==='IMG'){ const s=t.getAttribute('src')||''; return OK.test(s)?s:null; }
+    if(t.tagName==='IMG'){ const s=t.getAttribute('src')||''; return OK.test(s)&&!/\/back\d*\.webp/.test(s)?s:null; }
     const c=t.closest('.cell.city'); if(c){ const m=(c.style.backgroundImage||'').match(/url\("?([^")]+)"?\)/); return m?m[1]:null; }
     return null;
   }
