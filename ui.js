@@ -152,6 +152,17 @@ async function undo(){
   prev.ver=(S.ver||0)+1; S=prev; myLastVer=-1; render();
   try{ await db.doc('tables/'+table.code).update({state:JSON.stringify(prev),rev:prev.ver}); }catch(e){ alertBox(t('ui_writeErr',e.code||e.message)); }
 }
+function boardHelp(pl){
+  const red=(pl.rector&&pl.rector.tile==='4a')?2:0, C=n=>el('span',{class:'coin',style:'transform:scale(.8)'},n), I=n=>el('span',{class:'seal',style:'transform:scale(.8)'},n);
+  const row=(a,b,cost)=>el('span',{class:'bh'},icon(a,20,''),'→',icon(b,20,''),' ',...cost);
+  return el('div',{class:'bhelp'},
+    el('div',{},el('b',{},t('ui_promoCosts')+' '),
+      row('stu','prof',[C(Math.max(0,3-red)),' + ',I('#')]),
+      row('prof','emer',[C(Math.max(0,6-red)),' + ',I('#')]),
+      row('prof','rect',[C(red?'#−2':'#'),' + ',I(8)]),
+      el('span',{class:'muted',style:'font-size:12px'},t('ui_promoPosNote'))),
+    el('div',{},el('b',{},t('ui_boardAct')+' '),D.TYPES.map(ty=>el('span',{class:'bh'},icon('t_'+ty,20,'width:20px'),' ',tm(E.effsTxt(D.BOARD[ty]))))));
+}
 function hasRect2a(pl){ return pl.rector&&pl.rector.tile==='2a'; }
 document.addEventListener('click',function bkOutside(){ document.querySelectorAll('.bk.open').forEach(x=>x.classList.remove('open')); });
 async function bookAct(type,hk){
@@ -283,17 +294,18 @@ function renderTabs(sel){
       return el('span',{class:'lvls'},[1,2,3].map(l=>el('span',{title:t('L_'+l),style:'margin-right:8px;white-space:nowrap'+(n[l]?'':';opacity:.4')},icon('lv_'+l,20,'margin-right:2px'),String(n[l])))); })(),
     (()=>{ const wl=E.woaList(pl), cnt={}; wl.forEach(w=>cnt[w]=(cnt[w]||0)+1); return el('span',{class:'woas'},['ARC','MUS','PAI','SCU','THE'].map(w=>el('span',{title:WN(w),style:'margin-right:8px;white-space:nowrap'+(cnt[w]?'':';opacity:.4')},icon('w_'+w,20,'margin-right:2px'),String(cnt[w]||0))),'('+wl.length+')'); })(),
     E.wild(pl)?el('span',{},t('ui_wild')):null));
-  const rowEl=(label,arr,extra)=>{
+  const rowEl=(label,arr,extra,ico)=>{
     const cs=el('div',{class:'ucards'});
     arr.forEach((co,k)=>{ const w=el('div',{class:'ucard'}); const im=cardImg(co.id); if(sel.has(co.id)) im.classList.add('sel'); w.appendChild(im); w.appendChild(el('span',{class:'pos'},k+1));
       if(co.letters&&co.letters.length){ const l=el('div',{class:'lt'}); co.letters.forEach(wo=>l.appendChild(el('img',{src:'let/'+({ARC:'arch',MUS:'mus',PAI:'pai',SCU:'scu',THE:'thea'})[wo]+'.webp',title:WN(wo)}))); w.appendChild(l); }
       cs.appendChild(w); });
     if(extra) cs.appendChild(extra);
     if(!arr.length&&!extra) cs.appendChild(el('span',{class:'muted'},'—'));
-    return el('div',{class:'urow'},el('div',{class:'rl'},label),cs);
+    return el('div',{class:'urow'},el('div',{class:'rlw'},ico?icon(ico,26,''):null,el('div',{class:'rl'},label)),cs);
   };
-  if(pl.rector){ const ri=el('img',{src:'rect/'+pl.rector.tile+'.webp',class:'rtile',style:'width:96px;height:auto;aspect-ratio:139/200;object-fit:contain;align-self:flex-start;flex:0 0 auto;border-radius:6px;cursor:zoom-in'}); ri.onclick=()=>zoomImg('rect/'+pl.rector.tile+'.webp',t('ui_rRector'),t('R_'+pl.rector.tile)); u.appendChild(rowEl(t('ui_rRector'),[pl.rector.card],ri)); }
-  u.appendChild(rowEl(t('ui_rEmer'),pl.emer)); u.appendChild(rowEl(t('ui_rProf'),pl.profs)); u.appendChild(rowEl(t('ui_rStu'),pl.students));
+  if(pl.rector){ const ri=el('img',{src:'rect/'+pl.rector.tile+'.webp',title:t('ui_rector')+' : '+t('R_'+pl.rector.tile),class:'rtile nopv',style:'width:96px;height:auto;aspect-ratio:139/200;object-fit:contain;align-self:flex-start;flex:0 0 auto;border-radius:6px;cursor:zoom-in'}); ri.onclick=()=>zoomImg('rect/'+pl.rector.tile+'.webp',t('ui_rRector'),t('R_'+pl.rector.tile)); u.appendChild(rowEl(t('ui_rRector'),[pl.rector.card],ri,'rect')); }
+  u.appendChild(rowEl(t('ui_rEmer'),pl.emer,null,'emer')); u.appendChild(rowEl(t('ui_rProf'),pl.profs,null,'prof')); u.appendChild(rowEl(t('ui_rStu'),pl.students,null,'stu'));
+  u.appendChild(boardHelp(pl));
   const nHum=S.players.filter(x=>!x.ai).length;
   const showHand = mode==='local' ? (!pl.ai && (nHum<=1 || (S.pending&&S.pending.p===tab))) : isMine(tab);
   const h=el('div',{class:'hand'});
@@ -301,11 +313,12 @@ function renderTabs(sel){
   const pdS=S.pending, setupPick=isMine(tab)&&!busy&&pdS&&(pdS.kind==='setupBook'||pdS.kind==='discardFor')&&pdS.p===tab;
   if(showHand) pl.hand.forEach((b,hk)=>{ const ok=E.bookOk(S,tab,b);
     const im=el('img',{src:'book/'+b+'.webp',class:(ok?'ok':''),title:t('B_'+b)});
-    if(setupPick){ const k=pdS.opts.findIndex(o=>o.hk===hk); const w=el('div',{class:'bk act'},im); w.title=t('ui_bkClickDisc'); w.onclick=()=>{ if(k>=0) act(k); }; h.appendChild(w); return; }
-    if(!canAct){ im.onclick=()=>zoomImg('book/'+b+'.webp',t('ui_book'),t('B_'+b)+(ok?t('ui_bookOk'):'')+t('ui_bookDisc',tm(E.effsTxt(BOOK[b].disc)))); h.appendChild(im); return; }
+    if(setupPick){ const k=pdS.opts.findIndex(o=>o.hk===hk); const w=el('div',{class:'bk act'},im); im.removeAttribute('title'); w.title=t('ui_bkCond')+' : '+t('B_'+b)+'\n'+t('ui_bkDiscFx')+' : '+tm(E.effsTxt(BOOK[b].disc))+'\n'+t('ui_bkClickDisc'); w.onclick=()=>{ if(k>=0) act(k); }; h.appendChild(w); return; }
+    if(!canAct){ im.title=t('ui_bkCond')+' : '+t('B_'+b)+'\n'+t('ui_bkDiscFx')+' : '+tm(E.effsTxt(BOOK[b].disc)); im.onclick=()=>zoomImg('book/'+b+'.webp',t('ui_book'),t('B_'+b)+(ok?t('ui_bookOk'):'')+t('ui_bookDisc',tm(E.effsTxt(BOOK[b].disc)))); h.appendChild(im); return; }
     const disc=hasRect2a(pl)?[{c:1},{i:1},{t:1}]:BOOK[b].disc;
     const w=el('div',{class:'bk act'+(ok?' canplay':'')+(S.pending&&S.pending.kind==='end'&&pl.hand.length>3?' warn':''),tabindex:'0'},im);
-    w.title=ok?t('ui_bkClickBoth'):t('ui_bkClickDisc')+' ('+tm(E.effsTxt(disc))+')';
+    w.title=t('ui_bkCond')+' : '+t('B_'+b)+'\n'+t('ui_bkDiscFx')+' : '+tm(E.effsTxt(disc))+'\n'+(ok?t('ui_bkClickBoth'):t('ui_bkClickDisc'));
+    im.removeAttribute('title');
     if(!ok){ w.addEventListener('click',ev=>{ ev.stopPropagation(); bookAct('disc',hk); }); h.appendChild(w); return; }
     const menu=el('div',{class:'bkmenu'},el('div',{class:'bkt'},t('B_'+b)),
       el('button',{class:'primary small',onclick:ev=>{ev.stopPropagation();bookAct('play',hk);}},t('ui_bkPlay')),
