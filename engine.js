@@ -280,7 +280,7 @@ function step(s,t){
   case 'hire': return hire(s,p,t.slot,t.free,t.noAct);
   case 'choice': {
     const c=CARD[t.id]; if(!c.act) return;
-    if(c.act!=='any' && !promoOptions(s,p).length){ s.stack.push({k:'activate',p,type:c.act}); pl.nAct=(pl.nAct||0)+1; return; }
+    if(c.act!=='any' && !promoOptions(s,p).length && !promoWithBooks(s,p)){ s.stack.push({k:'activate',p,type:c.act}); pl.nAct=(pl.nAct||0)+1; return; }
     const opts=[];
     (c.act==='any'?D.TYPES:[c.act]).forEach(ty=>opts.push({label:M('o_activate',TY(ty)),act:ty}));
     opts.push(promoOptions(s,p).length?{label:M('o_promote'),promo:1}:{label:M('o_promoteNone'),none:1});
@@ -330,6 +330,8 @@ function step(s,t){
     const pd=t.pd;
     if(pd.kind==='turn'){ if(s.phase==='main') ask(s,p,'turn',M('q_turn',pn(s,p)),mainOpts(s,p),{k:'turn',p}); return; }
     if(pd.kind==='end'){ endPrompt(s); return; }
+    // décisions qui dépendent des ressources : on les recalcule (une ressource gagnée peut rendre une option abordable)
+    if(pd.task&&['choice','promo','fes'].includes(pd.kind)){ s.stack.push(pd.task); return; }
     // décision en cours : on retire les options de Livre devenues invalides
     pd.opts=pd.opts.filter(o=>(o.play===undefined&&o.disc===undefined)||P(s,p).hand[o.play!==undefined?o.play:o.disc]===o.book);
     if(!pd.opts.length){ return; }
@@ -430,6 +432,13 @@ function cityEff(s,p,key){
   }
 }
 
+// une promotion deviendrait-elle abordable en défaussant des Livres de la main ?
+function promoWithBooks(s,p){
+  const pl=P(s,p); if(!pl.hand.length) return false;
+  let gc=0,gi=0; pl.hand.forEach(b=>discEff(s,p,b).forEach(e=>{ gc+=(e.c||0)+(e.ci||0); gi+=(e.i||0)+(e.ci||0); }));
+  if(!gc&&!gi) return false;
+  pl.coins+=gc; pl.infl+=gi; const ok=promoOptions(s,p).length>0; pl.coins-=gc; pl.infl-=gi; return ok;
+}
 function promoOptions(s,p){
   const pl=P(s,p), out=[]; const red=hasRect(pl,'4a')?2:0;
   pl.students.forEach((co,k)=>{ const c=Math.max(0,3-red), i=k+1; if(canPay(pl,c,i)) out.push({label:M('o_promoSP',cn(co.id),c,i),to:'S',idx:k,cards:[co.id]}); });
