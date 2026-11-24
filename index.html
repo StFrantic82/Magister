@@ -106,12 +106,12 @@ button.small{padding:3px 10px;font-size:14px}
 .dice{display:inline-flex;align-items:center;gap:6px;font-family:'IM Fell English SC';font-size:16px;padding:4px 12px;border-radius:20px;background:linear-gradient(var(--goldA),var(--goldB));border-color:#6b4a10;color:#2b1405}
 .dice .die{font-size:22px;line-height:1}
 .dice:active .die{transform:rotate(90deg)}
-.cbox{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}
-@media(max-width:480px){.cbox{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.cbox label{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font-size:14px;line-height:1.15;background:#fffaf0;border:1px solid #cfb37e;border-radius:10px;padding:10px 4px 8px;cursor:pointer;transition:transform .12s, box-shadow .12s;min-height:92px;justify-content:flex-start}
+.cbox{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:8px}
+@media(max-width:480px){.cbox{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.cbox label{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font-size:14px;line-height:1.15;background:#fffaf0;border:1px solid #cfb37e;border-radius:10px;padding:7px 3px 6px;cursor:pointer;transition:transform .12s, box-shadow .12s;min-height:0;justify-content:flex-start}
 .cbox label:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(60,35,10,.2)}
 .cbox input{position:absolute;opacity:0;pointer-events:none}
-.cbox img{width:40px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))}
+.cbox img{width:34px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))}
 .cbox label:has(input:checked){background:linear-gradient(#fff4da,#f3dfae);border-color:var(--goldB);box-shadow:0 0 0 2px var(--goldB),0 4px 10px rgba(60,35,10,.25)}
 .cbox label:has(input:checked)::after{content:"✓";position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;background:radial-gradient(#b32b26,#6e1411);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;border:2px solid #4a0c09;box-shadow:0 2px 4px rgba(0,0,0,.4)}
 .cbox label:has(input:disabled){opacity:.45;cursor:default;transform:none;box-shadow:none}
@@ -416,12 +416,12 @@ button.small{padding:3px 10px;font-size:14px}
 <div id="decide" class="hidden"></div>
 <div id="zoom" class="hidden"></div>
 
-<script src="data.js?v=2611242265"></script>
-<script src="i18n.js?v=2611242265"></script>
-<script src="i18n2.js?v=2611242265"></script>
-<script src="engine.js?v=2611242265"></script>
-<script src="firebase-config.js?v=2611242265"></script>
-<script src="net-firebase.js?v=2611242265"></script>
-<script src="ui.js?v=2611242265"></script>
+<script src="data.js?v=2611242270"></script>
+<script src="i18n.js?v=2611242270"></script>
+<script src="i18n2.js?v=2611242270"></script>
+<script src="engine.js?v=2611242270"></script>
+<script src="firebase-config.js?v=2611242270"></script>
+<script src="net-firebase.js?v=2611242270"></script>
+<script src="ui.js?v=2611242270"></script>
 </body>
 </html>

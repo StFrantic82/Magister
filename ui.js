@@ -78,7 +78,7 @@ function countryBoxes(id,keep){
   Object.keys(D.countries).forEach(k=>{
     const inp=el('input',{type:'checkbox',value:k,checked:prev.includes(k)?'':null});
     inp.addEventListener('change',()=>limitCountries(id));
-    box.appendChild(el('label',{},inp,el('img',{src:'tok/country_'+COUNTRY_IMG[k]+'.webp',alt:''}),el('span',{},t('C_'+k)),el('span',{class:'ctr'},D.countries[k].cities.map(c=>t('CY_'+c[1])).join(' · '))));
+    box.appendChild(el('label',{title:D.countries[k].cities.map(c=>t('CY_'+c[1])).join(' · ')},inp,el('img',{src:'tok/country_'+COUNTRY_IMG[k]+'.webp',alt:''}),el('span',{},t('C_'+k))));
   });
   limitCountries(id);
 }
