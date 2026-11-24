@@ -582,6 +582,7 @@ const TUTO=[
  {k:'s6',vis:()=>[icon('trav',70),el('img',{src:'city/pisa.webp',class:'sm',style:'max-height:150px'}),el('img',{src:'city/padova.webp',class:'sm',style:'max-height:150px'}),el('img',{src:'city/bologna.webp',class:'sm',style:'max-height:150px'})]},
  {k:'s7',vis:()=>[el('img',{src:'book/16.webp',class:'sm'}),el('img',{src:'book/23.webp',class:'sm'}),el('div',{style:'display:flex;gap:6px;flex-wrap:wrap;max-width:180px;justify-content:center'},['c2','i2','book','pai','mus','thea'].map(x=>el('img',{src:'let/'+x+'.webp',style:'width:50px;box-shadow:none'})))]},
  {k:'s8',vis:()=>[el('img',{src:'obj/A1.webp',class:'sm',style:'max-height:140px'}),el('img',{src:'obj/D2.webp',class:'sm',style:'max-height:140px'}),el('div',{style:'display:flex;gap:6px'},el('img',{src:'tok/vp3.webp',style:'width:56px;box-shadow:none'}),el('img',{src:'tok/vp2.webp',style:'width:56px;box-shadow:none'}))]},
+ {k:'s9',vis:()=>[el('img',{src:'cards/45.webp',class:'sm'}),el('div',{style:'display:flex;flex-direction:column;gap:8px;align-items:center'},el('img',{src:'city/samarkand.webp',class:'sm',style:'max-height:110px'}),el('img',{src:'rect/5a.webp',class:'sm',style:'max-height:110px'}))]},
 ];
 function richTxt(s){ const IC={A:'t_A',M:'t_M',N:'t_N',R:'t_R',stu:'stu',prof:'prof',emer:'emer',rect:'rect',coin:'coin',infl:'infl',trav:'trav'}; return s.split(/(\[[a-zA-Z]+\])/).map(x=>{ const m=x.match(/^\[([a-zA-Z]+)\]$/); return m&&IC[m[1]]?icon(IC[m[1]],22,'margin:0 2px'):x; }); }
 function renderTuto(){
