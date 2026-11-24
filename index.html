@@ -282,10 +282,12 @@ button.small{padding:3px 10px;font-size:14px}
 .travelp::before{content:"";position:absolute;inset:0;background:url(tok/map.webp) center/cover no-repeat;opacity:.22;border-radius:inherit;z-index:-1;pointer-events:none}
 .travelp .cell{background-color:rgba(239,225,191,.62)}
 .travelp::before{opacity:.32}
-.slot::before{content:"";position:absolute;left:-9px;right:-9px;top:-34px;bottom:-8px;background:url(tok/arch.webp) center/100% 100% no-repeat;opacity:.38;border-radius:6px;pointer-events:none;z-index:0}
+.slot{display:flex;flex-direction:column;align-items:stretch}
+.slot>.cost{position:static!important;transform:none!important;align-self:center;margin:0 0 6px;z-index:2}
+.slot::before{content:"";position:absolute;left:-10px;right:-10px;top:26px;bottom:-10px;background:url(tok/arch.webp) center/100% 100% no-repeat;opacity:.6;pointer-events:none;z-index:0}
+.slot>.cost+*{margin-top:22px}
 .slot>*{position:relative;z-index:1}
-.slot>.cost{position:absolute;z-index:2}
-.rowwrap{gap:20px;padding-top:30px;padding-left:4px;padding-right:10px}
+.rowwrap{gap:24px;padding:4px 14px 14px 14px}
 .horse{display:inline-block;width:20px;height:19px;filter:drop-shadow(0 0 0.6px #1a0f06) drop-shadow(0 0 0.6px #1a0f06) drop-shadow(0 1px 1px rgba(0,0,0,.35))}
 .horse i{display:block;width:100%;height:100%;-webkit-mask:url(ic/trav.png) center/contain no-repeat;mask:url(ic/trav.png) center/contain no-repeat}
 .cell .travs{gap:0}
