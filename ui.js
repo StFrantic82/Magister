@@ -294,7 +294,7 @@ function renderTabs(sel){
   const showHand = mode==='local' ? !pl.ai : isMine(tab);
   const h=el('div',{class:'hand'});
   const canAct=isMine(tab)&&!busy&&E.canBookAct(S,tab);
-  const pdS=S.pending, setupPick=isMine(tab)&&!busy&&pdS&&pdS.kind==='setupBook'&&pdS.p===tab;
+  const pdS=S.pending, setupPick=isMine(tab)&&!busy&&pdS&&(pdS.kind==='setupBook'||pdS.kind==='discardFor')&&pdS.p===tab;
   if(showHand) pl.hand.forEach((b,hk)=>{ const ok=E.bookOk(S,tab,b);
     const im=el('img',{src:'book/'+b+'.webp',class:(ok?'ok':''),title:t('B_'+b)});
     if(setupPick){ const k=pdS.opts.findIndex(o=>o.hk===hk); const w=el('div',{class:'bk act'},im); w.title=t('ui_bkClickDisc'); w.onclick=()=>{ if(k>=0) act(k); }; h.appendChild(w); return; }
@@ -336,8 +336,8 @@ function renderDecide(){
   const THUMB={pair:1,place:1,lisboa:1,take:1,fes:1,meknes:1,elim:1,sale:1,freePromo:1,reorg:1};
   const hideBooks=true, nH=S.players[pd.p].hand.length;
   if(pd.kind==='end'&&nH>3) d.appendChild(el('div',{class:'hint bkwarn'},icon('book',22,'margin-right:6px'),t('ui_tooManyBooks',nH)));
-  if(pd.kind==='setupBook'&&isMine(pd.p)) d.appendChild(el('div',{class:'hint'},icon('book',22,'margin-right:6px'),t('ui_setupBookHint')));
-  pd.opts.forEach((o,k)=>{ if(filter&&!filter.includes(k)) return; if(pd.kind==='setupBook') return; if(hideBooks&&(o.play!==undefined||o.disc!==undefined)&&(pd.kind==='turn'||pd.kind==='end')) return;
+  if((pd.kind==='setupBook'||pd.kind==='discardFor')&&isMine(pd.p)) d.appendChild(el('div',{class:'hint'},icon('book',22,'margin-right:6px'),t(pd.kind==='setupBook'?'ui_setupBookHint':'ui_discForHint')));
+  pd.opts.forEach((o,k)=>{ if(filter&&!filter.includes(k)) return; if((pd.kind==='setupBook'||pd.kind==='discardFor')&&isMine(pd.p)) return; if(hideBooks&&(o.play!==undefined||o.disc!==undefined)&&(pd.kind==='turn'||pd.kind==='end')) return;
     const b=el('button',{class:(o.endTurn?'primary':'')+(THUMB[pd.kind]&&o.cards?' cbtn':''),onclick:()=>act(k)});
     if(pd.kind==='letter'&&o.letter){ b.classList.add('lbtn'); b.title=tm(o.label); b.appendChild(el('img',{src:'let/'+o.letter+'.webp',alt:tm(o.label)})); opts.appendChild(b); return; }
     if(THUMB[pd.kind]&&o.cards){ const row=el('div',{class:'cthumbs'}); o.cards.forEach(id=>row.appendChild(el('img',{src:'cards/'+id+'.webp',alt:CARD[id].name}))); b.appendChild(row); }
