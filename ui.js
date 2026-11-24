@@ -1043,3 +1043,5 @@ applyStatic(); renderSeats(); countryBoxes('#cboxL'); checkResume(); setView('pl
 window.__mag={get S(){return S}, act, E, setLang};
 })();
 
+// garde le bas de la page visible au-dessus du bandeau de décision (hauteur variable)
+(function(){ const d=document.getElementById('decide'); if(!d||!window.ResizeObserver) return; const fit=()=>{ const h=d.classList.contains('hidden')?0:d.offsetHeight; document.body.style.paddingBottom=(h+24)+'px'; }; new ResizeObserver(fit).observe(d); new MutationObserver(fit).observe(d,{attributes:true,attributeFilter:['class']}); fit(); })();
