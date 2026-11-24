@@ -350,6 +350,7 @@ function renderDecide(){
   if((pd.kind==='setupBook'||pd.kind==='discardFor')&&isMine(pd.p)) d.appendChild(el('div',{class:'hint'},icon('book',22,'margin-right:6px'),t(pd.kind==='setupBook'?'ui_setupBookHint':'ui_discForHint')));
   pd.opts.forEach((o,k)=>{ if(filter&&!filter.includes(k)) return; if((pd.kind==='setupBook'||pd.kind==='discardFor')&&isMine(pd.p)) return; if(hideBooks&&(o.play!==undefined||o.disc!==undefined)&&(pd.kind==='turn'||pd.kind==='end')) return;
     const b=el('button',{class:(o.endTurn?'primary':'')+(THUMB[pd.kind]&&o.cards?' cbtn':''),onclick:()=>act(k)});
+    if(pd.kind==='beijing'&&o.city){ b.classList.add('lbtn','cbtn2'); b.title=tm(o.label); b.appendChild(el('img',{src:'city/'+o.city+'.webp',alt:tm(o.label)})); opts.appendChild(b); return; }
     if(pd.kind==='letter'&&o.letter){ b.classList.add('lbtn'); b.title=tm(o.label); b.appendChild(el('img',{src:'let/'+o.letter+'.webp',alt:tm(o.label)})); opts.appendChild(b); return; }
     if(THUMB[pd.kind]&&o.cards){ const row=el('div',{class:'cthumbs'}); o.cards.forEach(id=>row.appendChild(el('img',{src:'cards/'+id+'.webp',alt:CARD[id].name}))); b.appendChild(row); }
     b.appendChild(el('span',{},tm(o.label))); opts.appendChild(b); });
