@@ -868,11 +868,11 @@ let job=null; // {kind, total, done, results:[], log:[], worker}
 function makeWorker(){
   try{ return new Worker('sim-worker.js?v=202611241617'); }catch(e){ return null; }
 }
-function runJob(kind){
+function runJob(kind,manual){
   if(job&&job.running) return;
   const w=makeWorker();
   if(!w){ alertBox(t('si_noWorker')); return; }
-  job={kind,running:true,done:0,total:kind==='batch'?simCfg.games:simCfg.gens*simCfg.perGen,results:[],log:[],ms:[],worker:w,best:null,startW:E.getWeights(),accepted:0};
+  job={kind,manual:!!manual,running:true,done:0,total:kind==='batch'?simCfg.games:simCfg.gens*simCfg.perGen,results:[],log:[],ms:[],worker:w,best:null,startW:E.getWeights(),accepted:0};
   const cs=simCfg.countries.length===3?simCfg.countries:null;
   w.onmessage=async ev=>{
     const m=ev.data;
@@ -884,7 +884,7 @@ function runJob(kind){
     if(view==='sim') renderSim(true);
   };
   w.onerror=e=>{ console.error(e); job.running=false; job.log.unshift('⚠ '+(e.message||'error')); renderSim(); };
-  if(kind==='batch') w.postMessage({cmd:'batch',games:simCfg.games,players:simCfg.players,countries:cs,depth:simCfg.depth,weights:E.getWeights()});
+  if(kind==='batch') w.postMessage({cmd:'batch',games:simCfg.games,players:simCfg.players,countries:cs,depth:simCfg.depth,weights:manual?myW():E.getWeights()});
   else w.postMessage({cmd:'train',gens:simCfg.gens,perGen:simCfg.perGen,players:simCfg.tPlayers,countries:cs,depth:simCfg.depth,weights:E.getWeights(),sigma:0.25,rush:simCfg.rush,target:11});
   renderSim();
 }
@@ -892,8 +892,8 @@ async function finishJob(){
   if(!job) return;
   job.running=false; job.saving=true; renderSim();
   try{ job.worker.terminate(); }catch(e){}
-  await recordGames(job.results,job.kind==='batch'?'sim':'train');
-  if(job.kind==='train' && job.best){ job.saveMsg=await saveWeights(job.best,((AIW&&AIW.gen)||0)+job.accepted); }
+  if(!job.manual) await recordGames(job.results,job.kind==='batch'?'sim':'train');
+  if(job.kind==='train' && job.best){ job.saveMsg=await saveWeights(job.best,((AIW&&typeof AIW.gen==='number'&&AIW.gen)||0)+job.accepted); }
   job.saving=false; renderSim();
 }
 function stopJob(){ if(job&&job.running){ job.worker.postMessage({cmd:'stop'}); setTimeout(()=>{ if(job&&job.running) finishJob(); },1500); } }
@@ -927,17 +927,27 @@ function renderSim(light){
       busy&&job.kind==='train'?el('button',{onclick:stopJob},t('si_stop')):null)));
   box.appendChild(simLive());
   // poids
-  const cur=E.getWeights(), def=E.DEFAULT_W;
-  box.appendChild(el('div',{class:'pcard'},el('h3',{},t('si_weights')+(AIW&&AIW.gen?' — '+t('si_aiGen',AIW.gen):'')),el('div',{class:'muted',style:'margin-bottom:6px'},t('si_weightsNote')),
-    el('table',{class:'stbl'},el('tr',{},el('th',{},t('si_param')),el('th',{class:'num'},t('si_current')),el('th',{class:'num'},t('si_default'))),
-      Object.keys(def).map(k=>el('tr',{},el('td',{},t('w_'+k)),el('td',{class:'num',style:cur[k]!==def[k]?'font-weight:700;color:var(--wine2)':''},String(Math.round(cur[k]*100)/100)),el('td',{class:'num muted'},String(def[k]))))),
-    el('div',{class:'actions',style:'justify-content:flex-start'},el('button',{class:'small',disabled:busy?'':null,onclick:async()=>{ const msg=await saveWeights(Object.assign({},def),0); alertBox(msg); renderSim(); }},t('si_reset')))));
+  const cur=E.getWeights(), def=E.DEFAULT_W, my=myW();
+  const genTxt=AIW&&AIW.gen==='manual'?' — '+t('si_aiManual'):(AIW&&AIW.gen?' — '+t('si_aiGen',AIW.gen):'');
+  box.appendChild(el('div',{class:'pcard'},el('h3',{},t('si_weights')+genTxt),el('div',{class:'muted',style:'margin-bottom:6px'},t('si_weightsNote')),
+    el('table',{class:'stbl'},el('tr',{},el('th',{},t('si_param')),el('th',{class:'num'},t('si_current')),el('th',{class:'num'},t('si_default')),el('th',{class:'num'},t('si_mine'))),
+      Object.keys(def).map(k=>{ const inp=el('input',{type:'number',step:'0.01',value:String(Math.round(my[k]*1000)/1000),style:'width:84px;text-align:right'+(Math.abs(my[k]-cur[k])>1e-9?';font-weight:700;color:var(--wine2)':'')});
+        inp.onchange=()=>{ const v=parseFloat(inp.value); if(isFinite(v)){ const m=myW(); m[k]=v; store.set('mag_myw',JSON.stringify(m)); inp.style.fontWeight=Math.abs(v-cur[k])>1e-9?'700':''; inp.style.color=Math.abs(v-cur[k])>1e-9?'var(--wine2)':''; } };
+        return el('tr',{},el('td',{},t('w_'+k)),el('td',{class:'num',style:cur[k]!==def[k]?'font-weight:700;color:var(--wine2)':''},String(Math.round(cur[k]*100)/100)),el('td',{class:'num muted'},String(def[k])),el('td',{class:'num'},inp)); })),
+    el('p',{class:'muted',style:'margin:8px 0 4px'},t('si_mineNote')),
+    el('div',{class:'actions',style:'justify-content:flex-start;flex-wrap:wrap;gap:6px'},
+      el('button',{class:'primary small',disabled:busy?'':null,onclick:()=>{ simCfg.countries=pickedCountries('#cboxS'); runJob('batch',true); }},t('si_testMine',simCfg.games)),
+      el('button',{class:'small',disabled:busy?'':null,onclick:async()=>{ if(!confirm(t('si_applyMineQ'))) return; const msg=await saveWeights(myW(),'manual'); alertBox(msg); renderSim(); }},t('si_applyMine')),
+      el('button',{class:'small',disabled:busy?'':null,onclick:()=>{ store.set('mag_myw',JSON.stringify(E.getWeights())); renderSim(); }},t('si_mineFromCur')),
+      el('button',{class:'small',disabled:busy?'':null,onclick:()=>{ store.set('mag_myw',JSON.stringify(Object.assign({},def))); renderSim(); }},t('si_mineFromDef')),
+      el('button',{class:'small',disabled:busy?'':null,onclick:async()=>{ const msg=await saveWeights(Object.assign({},def),0); alertBox(msg); renderSim(); }},t('si_reset')))));
 }
+function myW(){ let m=null; try{ m=JSON.parse(store.get('mag_myw')||'null'); }catch(e){} return Object.assign({},E.getWeights(),m||{}); }
 function simLive(){
   const wrap=el('div',{id:'simLive'});
   if(!job) return wrap;
   const card=el('div',{class:'pcard'});
-  card.appendChild(el('h3',{},job.kind==='batch'?t('si_batch'):t('si_train')));
+  card.appendChild(el('h3',{},job.manual?t('si_batchMine'):job.kind==='batch'?t('si_batch'):t('si_train')));
   card.appendChild(el('div',{},(job.running?t('si_running')+' ':'')+(job.saving?t('si_saving'):'')+' '+t('si_progress',job.done,job.total)));
   card.appendChild(el('div',{class:'prog'},el('i',{style:'width:'+Math.round(job.done/job.total*100)+'%'})));
   const res=job.results;
