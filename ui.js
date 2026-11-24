@@ -277,14 +277,19 @@ function renderTabs(sel){
   const showHand = mode==='local' ? !pl.ai : isMine(tab);
   const h=el('div',{class:'hand'});
   const canAct=isMine(tab)&&!busy&&E.canBookAct(S,tab);
+  const pdS=S.pending, setupPick=isMine(tab)&&!busy&&pdS&&pdS.kind==='setupBook'&&pdS.p===tab;
   if(showHand) pl.hand.forEach((b,hk)=>{ const ok=E.bookOk(S,tab,b);
-    const im=el('img',{src:'book/'+b+'.webp',class:(ok?'ok':'')+(canAct?' nopv':''),title:canAct?null:t('B_'+b)});
+    const im=el('img',{src:'book/'+b+'.webp',class:(ok?'ok':''),title:t('B_'+b)});
+    if(setupPick){ const k=pdS.opts.findIndex(o=>o.hk===hk); const w=el('div',{class:'bk act'},im); w.title=t('ui_bkClickDisc'); w.onclick=()=>{ if(k>=0) act(k); }; h.appendChild(w); return; }
     if(!canAct){ im.onclick=()=>zoomImg('book/'+b+'.webp',t('ui_book'),t('B_'+b)+(ok?t('ui_bookOk'):'')+t('ui_bookDisc',tm(E.effsTxt(BOOK[b].disc)))); h.appendChild(im); return; }
     const disc=hasRect2a(pl)?[{c:1},{i:1},{t:1}]:BOOK[b].disc;
+    const w=el('div',{class:'bk act'+(ok?' canplay':'')+(S.pending&&S.pending.kind==='end'&&pl.hand.length>3?' warn':''),tabindex:'0'},im);
+    w.title=ok?t('ui_bkClickBoth'):t('ui_bkClickDisc')+' ('+tm(E.effsTxt(disc))+')';
+    if(!ok){ w.addEventListener('click',ev=>{ ev.stopPropagation(); bookAct('disc',hk); }); h.appendChild(w); return; }
     const menu=el('div',{class:'bkmenu'},el('div',{class:'bkt'},t('B_'+b)),
-      ok?el('button',{class:'primary small',onclick:ev=>{ev.stopPropagation();bookAct('play',hk);}},t('ui_bkPlay')):el('div',{class:'muted',style:'font-size:13px'},t('ui_bkNo')),
+      el('button',{class:'primary small',onclick:ev=>{ev.stopPropagation();bookAct('play',hk);}},t('ui_bkPlay')),
       el('button',{class:'small',onclick:ev=>{ev.stopPropagation();bookAct('disc',hk);}},t('ui_bkDisc',tm(E.effsTxt(disc)))));
-    const w=el('div',{class:'bk'+(S.pending&&S.pending.kind==='end'&&pl.hand.length>3?' warn':''),tabindex:'0'},im,menu);
+    w.appendChild(menu);
     const place=()=>{ const r=w.getBoundingClientRect(); let x=r.right+6, y=r.top; if(x+226>innerWidth) x=r.left-232; y=Math.max(8,Math.min(innerHeight-200,y)); menu.style.left=x+'px'; menu.style.top=y+'px'; };
     w.addEventListener('click',ev=>{ ev.stopPropagation(); const was=w.classList.contains('open'); document.querySelectorAll('.bk.open').forEach(x=>x.classList.remove('open')); if(!was){ place(); w.classList.add('open'); } }); h.appendChild(w); });
   else pl.hand.forEach(()=>h.appendChild(el('img',{src:'book/back.webp'})));
@@ -314,7 +319,8 @@ function renderDecide(){
   const THUMB={pair:1,place:1,lisboa:1,take:1,fes:1,meknes:1,elim:1,sale:1,freePromo:1,reorg:1};
   const hideBooks=true, nH=S.players[pd.p].hand.length;
   if(pd.kind==='end'&&nH>3) d.appendChild(el('div',{class:'hint bkwarn'},icon('book',22,'margin-right:6px'),t('ui_tooManyBooks',nH)));
-  pd.opts.forEach((o,k)=>{ if(filter&&!filter.includes(k)) return; if(hideBooks&&(o.play!==undefined||o.disc!==undefined)&&(pd.kind==='turn'||pd.kind==='end')) return;
+  if(pd.kind==='setupBook'&&isMine(pd.p)) d.appendChild(el('div',{class:'hint'},icon('book',22,'margin-right:6px'),t('ui_setupBookHint')));
+  pd.opts.forEach((o,k)=>{ if(filter&&!filter.includes(k)) return; if(pd.kind==='setupBook') return; if(hideBooks&&(o.play!==undefined||o.disc!==undefined)&&(pd.kind==='turn'||pd.kind==='end')) return;
     const b=el('button',{class:(o.endTurn?'primary':'')+(THUMB[pd.kind]&&o.cards?' cbtn':''),onclick:()=>act(k)});
     if(THUMB[pd.kind]&&o.cards){ const row=el('div',{class:'cthumbs'}); o.cards.forEach(id=>row.appendChild(el('img',{src:'cards/'+id+'.webp',alt:CARD[id].name}))); b.appendChild(row); }
     b.appendChild(el('span',{},tm(o.label))); opts.appendChild(b); });
