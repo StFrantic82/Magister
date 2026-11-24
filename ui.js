@@ -318,8 +318,19 @@ function renderLog(){ const lg=$('#log'); lg.innerHTML=''; S.log.slice().reverse
 function renderDecide(){
   const d=$('#decide'); d.innerHTML='';
   if(S.over){
-    const tb=el('table',{},el('tr',{},el('th',{},'#'),el('th',{},t('ui_player')),el('th',{},t('ui_vp')),el('th',{},t('ui_rector')),el('th',{},t('ui_emer')),el('th',{},t('ui_profs'))));
-    S.ranking.forEach((r,i)=>tb.appendChild(el('tr',{},el('td',{},i+1),el('td',{},S.players[r.k].name),el('td',{},r.vp),el('td',{},r.r?'1':'0'),el('td',{},r.e),el('td',{},r.pr))));
+    const IC=(src,tt)=>el('img',{src,title:tt,alt:tt,style:'width:24px;height:24px;object-fit:contain;vertical-align:middle;background:#f3e6c4;border-radius:50%;padding:3px'});
+    const src=[['book',p=>p.played.length,'ic/book.png',t('ui_srcBooks')],['emer',p=>Object.values(p.emTok).reduce((a,b)=>a+b,0),'ic/emer.png',t('ui_srcObj')],['rect',p=>p.rector?1:0,'ic/rect.png',t('ui_rector')]];
+    if(S.tracks.includes('ITA')) src.push(['bol',p=>p.bologna,'city/bologna.webp',t('CY_bologna')]);
+    if(S.tracks.includes('BYZ')) src.push(['con',p=>p.constTok.length,'city/constantinople.webp',t('CY_constantinople')]);
+    const tie=[['r','ic/rect.png',t('ui_rector')],['e','ic/emer.png',t('ui_emer')],['pr','ic/prof.png',t('ui_profs')],['st','ic/stu.png',t('ui_stus')]];
+    const sep='';
+    const tb=el('table',{class:'endtbl'},
+      el('tr',{},el('th',{},'#'),el('th',{},t('ui_player')),el('th',{},t('ui_vp')),src.map(s=>el('th',{class:'num'},IC(s[2],s[3]))),
+        el('th',{class:'endsep'}),tie.map(x=>el('th',{class:'num'},IC(x[1],x[2])))));
+    S.ranking.forEach((r,i)=>{ const pl=S.players[r.k];
+      tb.appendChild(el('tr',{},el('td',{},i+1),el('td',{},pl.name),el('td',{style:'font-weight:700'},r.vp),src.map(s=>{ const v=s[1](pl); return el('td',{class:'num',style:v?'':'opacity:.4'},String(v)); }),
+        el('td',{class:'endsep'}),tie.map((x,j)=>el('td',{class:'num',style:(r[x[0]]?'':'opacity:.4')},String(r[x[0]])))));
+    });
     const names=S.winners.map(k=>S.players[k].name).join(' & ');
     d.appendChild(el('div',{class:'endbox'},el('div',{class:'q'},t(S.winners.length>1?'ui_winsN':'ui_wins',names)),tb,
       el('button',{class:'primary',onclick:goHome},t('ui_menu'))));
