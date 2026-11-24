@@ -1,6 +1,6 @@
 // Magister — simulations IA en arrière-plan
 self.window=self;
-importScripts('data.js','engine.js');
+importScripts('data.js?'+(self.location.search.slice(1)||''),'engine.js?'+(self.location.search.slice(1)||''));
 const E=self.MagEngine;
 let stop=false;
 function play(nPlayers,countries,ws,seed){
