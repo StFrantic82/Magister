@@ -267,6 +267,8 @@ function renderTabs(sel){
     el('span',{title:t('ui_coins')},el('span',{class:'coin'},pl.coins)), el('span',{title:t('ui_infl')},el('span',{class:'seal'},pl.infl)),
     el('span',{},icon('laurel',20,'margin-right:4px'),E.vp(S,tab)+' '+t('ui_vp')+(vpB.length?' ('+vpB.join(', ')+')':'')),
     el('span',{},icon('trav',20,'margin-right:4px'),pl.trav.map((x,i)=>E.TR[i]+':'+x).join(' ')+' · '+pl.cities+' '+t('ui_cities')),
+    (()=>{ const all=[].concat(pl.students,pl.profs,pl.emer,pl.rector?[pl.rector.card]:[]), n={}; all.forEach(co=>{ const ty=CARD[co.id].type; n[ty]=(n[ty]||0)+1; });
+      return el('span',{class:'tys'},D.TYPES.map(ty=>el('span',{title:TN(ty),style:'margin-right:8px;white-space:nowrap'+(n[ty]?'':';opacity:.4')},icon('t_'+ty,20,'margin-right:2px;width:20px'),String(n[ty]||0)))); })(),
     (()=>{ const all=[].concat(pl.students,pl.profs,pl.emer,pl.rector?[pl.rector.card]:[]), n=[0,0,0,0]; all.forEach(co=>n[CARD[co.id].lvl]++);
       return el('span',{class:'lvls'},[1,2,3].map(l=>el('span',{title:t('L_'+l),style:'margin-right:8px;white-space:nowrap'+(n[l]?'':';opacity:.4')},icon('lv_'+l,20,'margin-right:2px'),String(n[l])))); })(),
     (()=>{ const wl=E.woaList(pl), cnt={}; wl.forEach(w=>cnt[w]=(cnt[w]||0)+1); return el('span',{class:'woas'},['ARC','MUS','PAI','SCU','THE'].map(w=>el('span',{title:WN(w),style:'margin-right:8px;white-space:nowrap'+(cnt[w]?'':';opacity:.4')},icon('w_'+w,20,'margin-right:2px'),String(cnt[w]||0))),'('+wl.length+')'); })(),
