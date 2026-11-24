@@ -403,7 +403,7 @@ function cityEff(s,p,key){
   const pl=P(s,p);
   const push=e=>pushSeq(s,p,e);
   switch(key){
-    case 'samarkand': pl.coins++; gain(pl,'c',1); break;
+    case 'samarkand': pl.coins++; gain(pl,'c',1); pl.infl++; gain(pl,'i',1); break;
     case 'kashgar': s.stack.push({k:'move',p,n:3}); break;
     case 'beijing': s.stack.push({k:'beijing',p,left:2,used:[]}); break;
     case 'pisa': push([{ci:1}]); break;
