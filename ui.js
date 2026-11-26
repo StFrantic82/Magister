@@ -10,6 +10,7 @@ let palOpen=-1;
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 
 // =========== TRADUCTION ===========
+E.setTree({on:true,iters:400});   // Flaminia (Difficile) réfléchit par MCTS dans les parties jouées
 let LANG=store.get('mag_lang'); if(!DICT[LANG]){ const n=(navigator.language||'fr').slice(0,2); LANG=DICT[n]?n:'fr'; }
 function tm(x){
   if(x==null) return ''; if(typeof x==='string'||typeof x==='number') return String(x);
@@ -964,7 +965,7 @@ function renderStats(){
 let simCfg={games:50,players:2,depth:2,countries:[],gens:10,perGen:24,tPlayers:2,rush:true};
 let job=null; // {kind, total, done, results:[], log:[], worker}
 function makeWorker(){
-  try{ return new Worker('sim-worker.js?v=2611261030'); }catch(e){ return null; }
+  try{ return new Worker('sim-worker.js?v=2611261130'); }catch(e){ return null; }
 }
 function runJob(kind,manual){
   if(job&&job.running) return;
@@ -1009,7 +1010,7 @@ function renderSim(light){
     el('div',{class:'ctrls'},
       el('label',{},t('si_games'),el('select',{onchange:e=>{simCfg.games=+e.target.value;}},[50,100,500,1000].map(v=>el('option',{value:v,selected:simCfg.games===v?'':null},String(v))))),
       el('label',{},t('si_players'),seg('players',[[2,'2'],[3,'3'],[4,'4']])),
-      el('label',{},t('si_speed'),seg('depth',[[2,t('si_normal')],[1,t('si_fast')]])),
+      el('label',{},t('si_speed'),seg('depth',[[2,t('si_normal')],[1,t('si_fast')],[3,t('si_mcts')]])),
       el('button',{class:'primary',disabled:busy?'':null,onclick:()=>{ simCfg.countries=pickedCountries('#cboxS'); runJob('batch'); }},t('si_run')),
       busy&&job.kind==='batch'?el('button',{onclick:stopJob},t('si_stop')):null),
     el('div',{class:'flab row-f',style:'justify-content:space-between'},el('span',{},t('si_countries')),el('button',{class:'dice',onclick:()=>randomCountries('#cboxS')},el('span',{class:'die'},'⚄'),el('span',{},t('si_random')))),

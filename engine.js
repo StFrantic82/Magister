@@ -756,7 +756,8 @@ function aiPlan(s){
 const LVL={1:{mist:0.63,noise:0.8,rand:0.15},2:{mist:0.42,noise:0.5,rand:0.05}};
 function aiChoose(s,depth){
   const pd=s.pending, pl=pd&&s.players[pd.p], lv=(pl&&pl.lvl)||3;
-  if(depth||lv>=3||!LVL[lv]||Math.random()>=LVL[lv].mist) return aiChooseHard(s,depth);
+  if(depth||lv>=3) return aiChooseHard(s,depth);
+  if(!LVL[lv]||Math.random()>=LVL[lv].mist) return aiChooseGreedy(s,depth);   // Moyen et Facile : heuristique seule (sans MCTS)
   return aiChooseWeak(s,LVL[lv]);
 }
 function aiChooseWeak(s,cfg){
@@ -772,7 +773,7 @@ function aiChooseWeak(s,cfg){
 // ---------- MCTS (recherche arborescente Monte-Carlo, à information cachée) ----------
 // À chaque itération : on tire une pioche possible, on descend dans l'arbre des décisions (UCB),
 // on termine le tour (+H tours) avec l'heuristique, puis on note la position avec l'évaluation apprise.
-let TREE={on:false,iters:120,c:0.6,H:0,S:15,pol:1,kinds:null,deep:1};
+let TREE={on:false,iters:400,c:0.6,H:0,S:15,pol:1,kinds:null,R:4,fpu:0.15};
 function setTree(o){ Object.assign(TREE,o||{}); }
 function treePolicy(c){ const pd=c.pending; if(pd.opts.length===1) return 0;
   if(pd.kind==='end'){ const pi=pd.opts.findIndex(x=>x.play!==undefined); if(pi>=0) return pi; }

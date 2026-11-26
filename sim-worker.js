@@ -15,7 +15,7 @@ self.onmessage=async ev=>{
   const m=ev.data;
   if(m.cmd==='stop'){ stop=true; return; }
   stop=false;
-  E.setAIDepth(m.depth||2);
+  E.setAIDepth(m.depth===3?2:(m.depth||2)); E.setTree({on:m.depth===3,iters:200});
   if(m.weights) E.setWeights(m.weights);
   if(m.cmd==='batch'){
     for(let g=0; g<m.games && !stop; g++){
