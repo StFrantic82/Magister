@@ -10,7 +10,7 @@ function play(nPlayers,countries,ws,seed){
   return s;
 }
 function pickCountries(c){ if(c&&c.length===3) return c; return null; }
-function mutate(w,sigma){ const o={}; for(const k in w){ const f=Math.exp((Math.random()*2-1)*sigma); o[k]=Math.max(0,Math.round(w[k]*f*1000)/1000); } return o; }
+function mutate(w,sigma){ const o={}; for(const k in w){ const f=Math.exp((Math.random()*2-1)*sigma); o[k]=Math.round(w[k]*f*1000)/1000; } return o; }
 self.onmessage=async ev=>{
   const m=ev.data;
   if(m.cmd==='stop'){ stop=true; return; }

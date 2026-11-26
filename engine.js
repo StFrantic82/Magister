@@ -552,13 +552,15 @@ function finish(s){
 }
 
 // ---------- IA ----------
-const DEFAULT_W={"over":0.15,"objp":2,"rpow":1,"dear":3,"rprog":0.685,"eprog":0.275,"race":0.08,"near":0.496,"lvl":1.335,"vp":9.705,"coin":0.628,"infl":0.722,"stu":2.558,"prof":5.529,"abil":0.862,"trig":0.692,"emer":9.22,"trav":0.597,"journey":1.958,"bookOk":3.763,"book":0.996,"emObj":6.696,"woa":0.501,"rector":11.714,"opp":3.836};
-const W_VERSION=3;
+const DEFAULT_W={"dear":3,"vp":7.425,"vp2":0.055,"near":-0.35,"coinN":-1.362,"coinO":-0.222,"inflN":0.403,"inflO":0.119,"lvl":0.151,"stu":-3.917,"stu2":0.198,"prof":-0.81,"prof2":0.011,"abil":-0.083,"trig":0.006,"emer":3.072,"trav":0.225,"journey":-2.019,"ncity":-1.2,"bookOk":7.601,"book":0.34,"emObj":-2.616,"objp":6.534,"woa":-0.41,"rector":-0.669,"rpow":0.677,"r3b":-0.767,"rprog":0.078,"eprog":1.994,"rready":-1.066,"eready":0.021,"sready":-1.042,"opp":-1.821,"vp_":0.396,"vp2_":-0.334,"near_":1.872,"coinN_":3.656,"coinO_":1.133,"inflN_":0.061,"inflO_":0.082,"lvl_":1.165,"stu_":-1.353,"stu2_":0.044,"prof_":2.079,"prof2_":-0.435,"abil_":1.874,"trig_":0.532,"emer_":-12.033,"trav_":0.495,"journey_":-2.51,"ncity_":3.177,"bookOk_":-6.726,"book_":2.022,"emObj_":20.987,"objp_":-6.7,"woa_":2.996,"rector_":-5.227,"rpow_":0.15,"r3b_":3.284,"rprog_":0.435,"eprog_":-3.217,"rready_":-0.538,"eready_":-1.489,"sready_":1.303};
+const W_VERSION=4;
 let GLOBAL_W=Object.assign({},DEFAULT_W);
 let AI_DEPTH=2;
 function setAIDepth(d){ AI_DEPTH=d; }
 function setWeights(w){ GLOBAL_W=Object.assign({},DEFAULT_W,w||{}); }
 function evalState(s,p){
+  // évaluation apprise sur des milliers de parties : somme pondérée des ingrédients de la position (voir evalFeat)
+  { const pl0=P(s,p), W=LIN||pl0.w||GLOBAL_W; if(s.over) return s.winners.includes(p)?10000:-10000+vp(s,p)*10; const f=evalFeat(s,p); let v=0; for(const k in W){ if(k==='dear') continue; v+=W[k]*(k.charCodeAt(k.length-1)===95?(f[k.slice(0,-1)]||0)*f.early:(f[k]||0)); } return v; }
   const pl=P(s,p), W=pl.w||GLOBAL_W;
   if(s.over) return s.winners.includes(p)?10000:-10000+vp(s,p)*10;
   const myvp=vp(s,p);
@@ -589,6 +591,45 @@ function evalState(s,p){
   if(pl.profs.length) v+=Math.min(pl.coins,6)*(W.eprog||0);
   let opp=0; s.players.forEach((q,k)=>{ if(k!==p) opp=Math.max(opp,vp(s,k)); }); v-=opp*W.opp;
   return v;
+}
+// ---------- évaluation apprise : mêmes ingrédients, poids ajustés sur des parties (régression) ----------
+let LIN=null;
+function setLin(o){ LIN=o||null; }
+function evalFeat(s,p){
+  const pl=P(s,p), n=s.players.length, f={};
+  const myvp=vp(s,p); f.vp=myvp; f.vp2=myvp*myvp;
+  const nb=pl.hand.filter(b=>bookOk(s,p,b)).length;
+  const no=D.TYPES.filter(t=>pl.emTok[t]===undefined && s.objSlots[t].stack.length && objOk(s,p,s.objSlots[t].tile)).length;
+  f.near=nb+no;
+  const need=needs(s,p), co=Math.min(pl.coins,16), inf=Math.min(pl.infl,16);
+  f.coinN=Math.min(co,need.c); f.coinO=Math.max(0,co-need.c); f.inflN=Math.min(inf,need.i); f.inflO=Math.max(0,inf-need.i);
+  const ch=chars(pl);
+  f.lvl=ch.reduce((a,c)=>a+CARD[c.id].lvl,0);
+  f.stu=pl.students.length; f.stu2=f.stu*f.stu; f.prof=pl.profs.length; f.prof2=f.prof*f.prof;
+  f.abil=pl.profs.reduce((a,c)=>a+CARD[c.id].A.length,0); f.trig=pl.profs.reduce((a,c)=>a+CARD[c.id].trig.length,0);
+  f.emer=pl.emer.length;
+  f.trav=pl.trav.reduce((a,x)=>a+x,0); f.journey=pl.trav.filter(x=>x>=12).length;
+  let nc=0; pl.trav.forEach((x,tr)=>{ const cy=D.countries[s.tracks[tr]].cities.map(c=>c[0]).filter(m=>m>x); if(cy.length) nc+=1/(cy[0]-x); }); f.ncity=nc;
+  f.bookOk=nb; f.book=pl.hand.length-nb;
+  let eo=0, op=0;
+  D.TYPES.forEach(t=>{ if(pl.emTok[t]!==undefined || !s.objSlots[t].stack.length) return; const has=pl.emer.some(c=>CARD[c.id].type===t); if(has) eo++; op+=objProgress(s,p,s.objSlots[t].tile)*(has?1.5:1); });
+  f.emObj=eo; f.objp=op;
+  f.woa=woaList(pl).length;
+  const left=Math.max(1,11.5-s.turnNo/n);
+  f.rector=pl.rector?1:0;
+  f.rpow=pl.rector?({'1a':0.8,'1b':1.3,'2a':0.7,'2b':0.5,'3a':0.7,'3b':0.4,'4a':0.8,'4b':1.3}[pl.rector.tile]||0)*left:0;
+  f.r3b=pl.rector&&pl.rector.tile==='3b'?1:0;
+  const rcan=!pl.rector && pl.profs.some(c=>s.rectSlots[CARD[c.id].type]);
+  f.rprog=rcan?Math.min(pl.infl,8):0; f.eprog=pl.profs.length?Math.min(pl.coins,6):0;
+  f.rready=rcan&&pl.infl>=8?1:0; f.eready=pl.profs.length&&pl.coins>=6-(hasRect(pl,'4a')?2:0)?1:0;
+  f.sready=pl.students.length&&pl.coins>=3-(hasRect(pl,'4a')?2:0)?1:0;
+  let opp=0; s.players.forEach((q,k)=>{ if(k!==p) opp=Math.max(opp,vp(s,k)); }); f.opp=opp;
+  f.early=left*0.1; f.one=1;
+  return f;
+}
+function evalLin(s,p){
+  if(s.over) return s.winners.includes(p)?10000:-10000+vp(s,p)*10;
+  const f=evalFeat(s,p); let v=0; for(const k in LIN){ v+=LIN[k]*(k.charCodeAt(k.length-1)===95?(f[k.slice(0,-1)]||0)*f.early:(f[k]||0)); } return v;
 }
 function summary(s,src){
   const n=s.players.length;
@@ -709,7 +750,7 @@ function aiPlan(s){
   }
   return best;
 }
-const LVL={1:{mist:0.55,noise:0.8,rand:0.15},2:{mist:0.32,noise:0.5,rand:0.05}};
+const LVL={1:{mist:0.63,noise:0.8,rand:0.15},2:{mist:0.42,noise:0.5,rand:0.05}};
 function aiChoose(s,depth){
   const pd=s.pending, pl=pd&&s.players[pd.p], lv=(pl&&pl.lvl)||3;
   if(depth||lv>=3||!LVL[lv]||Math.random()>=LVL[lv].mist) return aiChooseHard(s,depth);
@@ -751,5 +792,5 @@ function aiChooseHard(s,depth){
   return best;
 }
 
-global.MagEngine = {bookAction, canBookAct, wild, W_VERSION, setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
+global.MagEngine = {setLin, evalFeat, bookAction, canBookAct, wild, W_VERSION, setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
 })(typeof window!=='undefined'?window:globalThis);

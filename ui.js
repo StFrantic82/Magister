@@ -964,7 +964,7 @@ function renderStats(){
 let simCfg={games:50,players:2,depth:2,countries:[],gens:10,perGen:24,tPlayers:2,rush:true};
 let job=null; // {kind, total, done, results:[], log:[], worker}
 function makeWorker(){
-  try{ return new Worker('sim-worker.js?v=1795546941'); }catch(e){ return null; }
+  try{ return new Worker('sim-worker.js?v=2611260300'); }catch(e){ return null; }
 }
 function runJob(kind,manual){
   if(job&&job.running) return;
@@ -1030,17 +1030,17 @@ function renderSim(light){
   box.appendChild(el('div',{class:'pcard'},el('h3',{},t('si_weights')+genTxt),el('div',{class:'muted',style:'margin-bottom:6px'},t('si_weightsNote')),
     el('table',{class:'stbl'},el('tr',{},el('th',{},t('si_param')),el('th',{class:'num'},t('si_current')),el('th',{class:'num'},t('si_default')),el('th',{class:'num'},t('si_mine'))),
       Object.keys(def).map(k=>{ const inp=el('input',{type:'number',step:'0.01',value:String(Math.round(my[k]*1000)/1000),style:'width:84px;text-align:right'+(Math.abs(my[k]-cur[k])>1e-9?';font-weight:700;color:var(--wine2)':'')});
-        inp.onchange=()=>{ const v=parseFloat(inp.value); if(isFinite(v)){ const m=myW(); m[k]=v; store.set('mag_myw',JSON.stringify(m)); inp.style.fontWeight=Math.abs(v-cur[k])>1e-9?'700':''; inp.style.color=Math.abs(v-cur[k])>1e-9?'var(--wine2)':''; } };
-        return el('tr',{},el('td',{},t('w_'+k)),el('td',{class:'num',style:cur[k]!==def[k]?'font-weight:700;color:var(--wine2)':''},String(Math.round(cur[k]*100)/100)),el('td',{class:'num muted'},String(def[k])),el('td',{class:'num'},inp)); })),
+        inp.onchange=()=>{ const v=parseFloat(inp.value); if(isFinite(v)){ const m=myW(); m[k]=v; store.set('mag_myw4',JSON.stringify(m)); inp.style.fontWeight=Math.abs(v-cur[k])>1e-9?'700':''; inp.style.color=Math.abs(v-cur[k])>1e-9?'var(--wine2)':''; } };
+        return el('tr',{},el('td',{},k.endsWith('_')?t('w_'+k.slice(0,-1))+' '+t('w_earlySfx'):t('w_'+k)),el('td',{class:'num',style:cur[k]!==def[k]?'font-weight:700;color:var(--wine2)':''},String(Math.round(cur[k]*100)/100)),el('td',{class:'num muted'},String(def[k])),el('td',{class:'num'},inp)); })),
     el('p',{class:'muted',style:'margin:8px 0 4px'},t('si_mineNote')),
     el('div',{class:'actions',style:'justify-content:flex-start;flex-wrap:wrap;gap:6px'},
       el('button',{class:'primary small',disabled:busy?'':null,onclick:()=>{ simCfg.countries=pickedCountries('#cboxS'); runJob('batch',true); }},t('si_testMine',simCfg.games)),
       el('button',{class:'small',disabled:busy?'':null,onclick:async()=>{ if(!confirm(t('si_applyMineQ'))) return; const msg=await saveWeights(myW(),'manual'); alertBox(msg); renderSim(); }},t('si_applyMine')),
-      el('button',{class:'small',disabled:busy?'':null,onclick:()=>{ store.set('mag_myw',JSON.stringify(E.getWeights())); renderSim(); }},t('si_mineFromCur')),
-      el('button',{class:'small',disabled:busy?'':null,onclick:()=>{ store.set('mag_myw',JSON.stringify(Object.assign({},def))); renderSim(); }},t('si_mineFromDef')),
+      el('button',{class:'small',disabled:busy?'':null,onclick:()=>{ store.set('mag_myw4',JSON.stringify(E.getWeights())); renderSim(); }},t('si_mineFromCur')),
+      el('button',{class:'small',disabled:busy?'':null,onclick:()=>{ store.set('mag_myw4',JSON.stringify(Object.assign({},def))); renderSim(); }},t('si_mineFromDef')),
       el('button',{class:'small',disabled:busy?'':null,onclick:async()=>{ const msg=await saveWeights(Object.assign({},def),0); alertBox(msg); renderSim(); }},t('si_reset')))));
 }
-function myW(){ let m=null; try{ m=JSON.parse(store.get('mag_myw')||'null'); }catch(e){} return Object.assign({},E.getWeights(),m||{}); }
+function myW(){ let m=null; try{ m=JSON.parse(store.get('mag_myw4')||'null'); }catch(e){} return Object.assign({},E.getWeights(),m||{}); }
 function simLive(){
   const wrap=el('div',{id:'simLive'});
   if(!job) return wrap;
