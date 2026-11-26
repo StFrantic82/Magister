@@ -15,9 +15,12 @@ D.DECK2 = [17,18,19,20,33,34,35,36,49,50,51,52,65,66,67,68];
 function rnd(s){ let t = (s.rng += 0x6D2B79F5) | 0; t = Math.imul(t ^ t>>>15, t|1); t ^= t + Math.imul(t ^ t>>>7, t|61); return ((t ^ t>>>14)>>>0)/4294967296; }
 function shuffle(s,a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(rnd(s)*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 const clone = o => JSON.parse(JSON.stringify(o));
+// copie rapide pour les simulations de l'IA : sans le journal (les 2/3 de l'état), qui n'y sert à rien
+function fcopy(o){ if(o===null||typeof o!=='object') return o; if(Array.isArray(o)){ const n=o.length, a=new Array(n); for(let i=0;i<n;i++) a[i]=fcopy(o[i]); return a; } const r={}; for(const k in o){ const v=o[k]; if(v!==undefined) r[k]=fcopy(v); } return r; }
+function simClone(s){ const r={}; for(const k in s){ if(k==='log') continue; const v=s[k]; if(v!==undefined) r[k]=fcopy(v); } r.log=[]; r.nolog=true; return r; }
 
 // ---------- aides ----------
-function log(s,msg){ s.log.push(msg); if(s.log.length>150) s.log.splice(0,s.log.length-150); }
+function log(s,msg){ if(s.nolog) return; s.log.push(msg); if(s.log.length>150) s.log.splice(0,s.log.length-150); }
 function P(s,p){ return s.players[p]; }
 function pn(s,p){ return s.players[p].name; }
 const cn = id => CARD[id].name;
@@ -643,7 +646,7 @@ function summary(s,src){
 }
 function W0(){ return GLOBAL_W; }
 // l'IA ne doit pas connaître l'ordre des pioches : on les mélange dans la copie qu'elle évalue
-function hiddenClone(s){ const c=clone(s); const sh=a=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }; if(c.deck) sh(c.deck); if(c.bookDeck) sh(c.bookDeck); return c; }
+function hiddenClone(s){ const c=simClone(s); const sh=a=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }; if(c.deck) sh(c.deck); if(c.bookDeck) sh(c.bookDeck); return c; }
 function aiChooseGreedy(s,depth){
   depth=depth||0;
   const pd=s.pending, p=pd.p;
@@ -653,7 +656,7 @@ function aiChooseGreedy(s,depth){
   const lim = depth===0?pd.opts.length:Math.min(pd.opts.length,8);
   for(let k=0;k<lim;k++){
     const o=pd.opts[k];
-    let c; try{ c=clone(s); choose(c,k); }catch(e){ continue; }
+    let c; try{ c=simClone(s); choose(c,k); }catch(e){ continue; }
     let guard=0;
     while(c.pending && c.pending.p===p && !c.over && guard<12 && depth<AI_DEPTH && c.pending.kind!=='turn'){
       guard++;
@@ -733,7 +736,7 @@ function bestNextTurn(c,p){
   if(!c.pending||c.pending.kind!=='turn') return evalState(c,p);
   let bv=-1e9;
   const O=c.pending.opts;
-  for(let k=0;k<O.length;k++){ if(O[k].disc!==undefined) continue; const d=clone(c); choose(d,k); finishOwnTurn(d,p); const v=evalState(d,p)+(vp(d,p)>=8?40:0); if(v>bv) bv=v; }
+  for(let k=0;k<O.length;k++){ if(O[k].disc!==undefined) continue; const d=simClone(c); choose(d,k); finishOwnTurn(d,p); const v=evalState(d,p)+(vp(d,p)>=8?40:0); if(v>bv) bv=v; }
   return bv;
 }
 function aiPlan(s){
@@ -741,7 +744,7 @@ function aiPlan(s){
   let best=0, bv=-1e9;
   for(let k=0;k<pd.opts.length;k++){
     const o=pd.opts[k]; if(o.disc!==undefined && pd.kind==='turn') continue;
-    let c; try{ c=clone(s); choose(c,k); }catch(e){ continue; }
+    let c; try{ c=simClone(s); choose(c,k); }catch(e){ continue; }
     finishOwnTurnGreedy(c,p);
     const now=evalState(c,p)+(vp(c,p)>=8?60:0);
     let v=now;
@@ -760,28 +763,73 @@ function aiChooseWeak(s,cfg){
   const pd=s.pending, p=pd.p, n=pd.opts.length;
   if(n<=1) return 0;
   if(Math.random()<cfg.rand) return Math.floor(Math.random()*n);
-  const hs=hiddenClone(s); const sc=pd.opts.map((o,k)=>{ const c=clone(hs); choose(c,k); return evalState(c,p); });
+  const hs=hiddenClone(s); const sc=pd.opts.map((o,k)=>{ const c=simClone(hs); choose(c,k); return evalState(c,p); });
   const m=sc.reduce((a,b)=>a+b,0)/n, sd=Math.sqrt(sc.reduce((a,b)=>a+(b-m)*(b-m),0)/n)||1;
   const g=()=>{ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
   let best=0,bv=-Infinity; sc.forEach((x,k)=>{ const y=x+cfg.noise*sd*g(); if(y>bv){bv=y;best=k;} });
   return best;
 }
+// ---------- MCTS (recherche arborescente Monte-Carlo, à information cachée) ----------
+// À chaque itération : on tire une pioche possible, on descend dans l'arbre des décisions (UCB),
+// on termine le tour (+H tours) avec l'heuristique, puis on note la position avec l'évaluation apprise.
+let TREE={on:false,iters:120,c:0.6,H:0,S:15,pol:1,kinds:null,deep:1};
+function setTree(o){ Object.assign(TREE,o||{}); }
+function treePolicy(c){ const pd=c.pending; if(pd.opts.length===1) return 0;
+  if(pd.kind==='end'){ const pi=pd.opts.findIndex(x=>x.play!==undefined); if(pi>=0) return pi; }
+  return aiChooseGreedy(c,TREE.pol); }
+function treeValue(c){ const n=c.players.length, ev=new Array(n), out=new Array(n);
+  if(c.over){ for(let k=0;k<n;k++) out[k]=c.winners.includes(k)?1:-1; return out; }
+  for(let k=0;k<n;k++) ev[k]=evalState(c,k);
+  for(let k=0;k<n;k++){ let m=-1e9; for(let j=0;j<n;j++) if(j!==k&&ev[j]>m) m=ev[j]; out[k]=Math.tanh((ev[k]-m)/TREE.S); }
+  return out; }
+function aiTree(s){
+  const root={N:0,ch:[]}, t0=s.turnNo, stopT=t0+1+TREE.H, C=TREE.c, R=TREE.R||4, fpu=TREE.fpu===undefined?0.15:TREE.fpu;
+  // R pioches possibles, réutilisées à tour de rôle : toutes les options sont comparées sur les mêmes tirages
+  const bases=[]; for(let r=0;r<R;r++){ const b=hiddenClone(s); b.rng=(b.rng+r*7919+1)>>>0; bases.push(b); }
+  for(let it=0; it<TREE.iters; it++){
+    const c=simClone(bases[it%R]);
+    let node=root; const path=[]; let g=0;
+    while(!c.over && g<80){ g++;
+      const pd=c.pending;
+      if(pd.opts.length===1){ choose(c,0); continue; }
+      if(c.turnNo>=stopT) break;
+      if(!node.ch){ node.ch=[]; }
+      const L=pd.opts.length; let best=-1, bv=-1e9;
+      if(node===root){ // racine : chaque option est d'abord essayée sur chaque tirage, puis UCB
+        const lg=Math.log(node.N+1);
+        for(let k=0;k<L;k++){ const ch=node.ch[k]; if(!ch||ch.n<R){ best=k; break; } const u=ch.w/ch.n+C*Math.sqrt(lg/ch.n); if(u>bv){ bv=u; best=k; } }
+      } else if(node.N===0){ best=treePolicy(c); }
+      else { const lg=Math.log(node.N+1); let tw=0; for(let k=0;k<L;k++){ const ch=node.ch[k]; if(ch) tw+=ch.w; } const mean=tw/node.N;
+        for(let k=0;k<L;k++){ const ch=node.ch[k]; const u=ch?ch.w/ch.n+C*Math.sqrt(lg/ch.n):mean-fpu+C*Math.sqrt(lg); if(u>bv){ bv=u; best=k; } } }
+      if(!node.ch[best]) node.ch[best]={n:0,w:0,node:{N:0}};
+      path.push(node,best,pd.p);
+      try{ choose(c,best); }catch(e){ break; }
+      node=node.ch[best].node;
+    }
+    g=0; while(!c.over && c.pending && c.turnNo<stopT && g<400){ choose(c,treePolicy(c)); g++; }
+    const val=treeValue(c);
+    for(let i=0;i<path.length;i+=3){ const nd=path[i], ch=nd.ch[path[i+1]]; nd.N++; ch.n++; ch.w+=val[path[i+2]]; }
+  }
+  let bk=0, bn=-1; for(let k=0;k<s.pending.opts.length;k++){ const ch=root.ch[k]; if(ch&&(ch.n>bn||(ch.n===bn&&ch.w>root.ch[bk].w))){ bn=ch.n; bk=k; } }
+  return bk;
+}
 function aiChooseHard(s,depth){
   const pd=s.pending;
+  if(TREE.on && !depth && pd.opts.length>1 && (s.phase==='main'||s.phase==='end') && (!TREE.kinds||TREE.kinds[pd.kind])) return aiTree(s);
   if(PLAN.on && pd.kind==='turn' && pd.opts.length>1 && !depth) return aiPlan(s);
   if(!MC.on || !MC_KINDS[pd.kind] || pd.opts.length<2) return aiChooseGreedy(s,depth);
   const p=pd.p;
   let idx=pd.opts.map((o,k)=>k);
   if(pd.kind==='end'){ const pi=idx.find(k=>pd.opts[k].play!==undefined); if(pi!==undefined) return pi; }
   if(idx.length>9){ // préfiltre par l'heuristique gloutonne rapide
-    const sc=idx.map(k=>{ const c=clone(s); choose(c,k); return [k,evalState(c,p)]; }).sort((a,b)=>b[1]-a[1]);
+    const sc=idx.map(k=>{ const c=simClone(s); choose(c,k); return [k,evalState(c,p)]; }).sort((a,b)=>b[1]-a[1]);
     idx=sc.slice(0,9).map(x=>x[0]);
   }
   let best=idx[0], bv=-1e9;
   for(const k of idx){
     let tot=0;
     for(let r=0;r<MC.sims;r++){
-      const c=clone(s); c.rng=(c.rng+r*7919+k*104729)>>>0;
+      const c=simClone(s); c.rng=(c.rng+r*7919+k*104729)>>>0;
       try{ choose(c,k); }catch(e){ tot=-1e9; break; }
       const at8=(vp(c,p)>=8)?c.turnNo:playout(c,p,MC.cap);
       tot+=mcScore(c,p,at8);
@@ -792,5 +840,5 @@ function aiChooseHard(s,depth){
   return best;
 }
 
-global.MagEngine = {setLin, evalFeat, bookAction, canBookAct, wild, W_VERSION, setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
+global.MagEngine = {setTree, getTree:()=>Object.assign({},TREE), setLin, evalFeat, bookAction, canBookAct, wild, W_VERSION, setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
 })(typeof window!=='undefined'?window:globalThis);
