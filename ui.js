@@ -708,7 +708,7 @@ async function saveWeights(w,gen){
 }
 
 // =========== STATISTIQUES ===========
-let STATS=null, stFilter={src:'all',n:'all',rule:'all'}, stSort={}, STRESET=0, stCard={lvl:'all',type:'all'};
+let STATS=null, stFilter={src:'all',n:'all',rule:'all'}, stSort={}, STRESET=0, stCard={lvl:'all',type:'all',act:'all'};
 async function loadStats(){
   const box=$('#stats');
   if(!STATS){
@@ -834,14 +834,26 @@ function renderStats(){
       {h:t('st_paid5'),num:1,f:r=>r.cost.length?r.cost.filter(c=>c>=5).length/r.cost.length:-1,r:r=>el('span',{},pct(r.cost.filter(c=>c>=5).length,r.cost.length))},
       {h:t('st_hiredWin'),num:1,f:r=>r.h?r.hw/r.h:-1,r:r=>el('span',{},pct(r.hw,r.h))}],lv,'levels')));
   const thumb=id=>{ const im=el('img',{class:'th',src:'cards/'+id+'.webp'}); im.onclick=()=>zoomCard(id); return im; };
-  const cfil=crowAll.filter(r=>(stCard.lvl==='all'||r.c.lvl===+stCard.lvl)&&(stCard.type==='all'||r.c.type===stCard.type));
+  // Victoires selon le type que l'Étudiant permet d'activer (Artiste / Marchand / Noble / Religieux / Joker)
+  const actIc=a=>a==='any'?icon('t_any',20):icon('t_'+a,20), actName=a=>a==='any'?t('st_joker'):TN(a);
+  const byAct=['A','M','N','R','any'].map(a=>{ const rs=crow.filter(r=>r.c.act===a); const h=rs.reduce((s,r)=>s+r.h,0), hw=rs.reduce((s,r)=>s+r.hw,0), cost=[].concat(...rs.map(r=>r.cost)); return {a,n:rs.length,h,hw,cost,per:h/N}; });
+  box.appendChild(el('div',{class:'pcard'},el('h3',{},t('st_byAct')),el('div',{class:'muted',style:'margin-bottom:6px'},t('st_byActNote')),
+    sortable([{h:t('st_actType'),f:r=>r.a,r:r=>el('span',{},actIc(r.a),' '+actName(r.a))},
+      {h:t('st_nCards'),num:1,f:r=>r.n,r:r=>el('span',{},String(r.n))},
+      {h:t('st_hiresPerGame'),num:1,f:r=>r.per,r:r=>el('span',{},r.per.toFixed(1))},
+      {h:t('st_cost'),num:1,f:r=>r.cost.length?avg(r.cost):-1,r:r=>el('span',{},r.cost.length?avg(r.cost).toFixed(2):'—')},
+      {h:t('st_hiredWin'),num:1,f:r=>r.h?r.hw/r.h:-1,r:r=>barCell(r.h?r.hw/r.h:0,1,pct(r.hw,r.h))}],byAct,'byact')));
+  const cfil=crowAll.filter(r=>(stCard.lvl==='all'||r.c.lvl===+stCard.lvl)&&(stCard.type==='all'||r.c.type===stCard.type)&&(stCard.act==='all'||r.c.act===stCard.act));
   const cbar=el('div',{class:'row-f',style:'margin-bottom:8px;gap:12px'},
     el('div',{class:'tog'},[['all',t('st_any')],['3',t('L_3')],['2',t('L_2')],['1',t('L_1')],['0',t('L_0')]].map(([v,l])=>el('button',{class:stCard.lvl===v?'on':'',onclick:()=>{stCard.lvl=v;renderStats();}},v==='all'||v==='0'?l:el('span',{},icon('lv_'+v,16),' '+l)))),
-    el('div',{class:'tog'},[['all',t('st_any')],['A',t('T_A')],['M',t('T_M')],['N',t('T_N')],['R',t('T_R')]].map(([v,l])=>el('button',{class:stCard.type===v?'on':'',onclick:()=>{stCard.type=v;renderStats();}},v==='all'?l:el('span',{},icon('t_'+v,16),' '+l)))));
+    el('div',{class:'tog'},[['all',t('st_any')],['A',t('T_A')],['M',t('T_M')],['N',t('T_N')],['R',t('T_R')]].map(([v,l])=>el('button',{class:stCard.type===v?'on':'',onclick:()=>{stCard.type=v;renderStats();}},v==='all'?l:el('span',{},icon('t_'+v,16),' '+l)))),
+    el('span',{style:'display:inline-flex;align-items:center;gap:6px'},el('span',{class:'muted',style:'font-size:13px'},t('st_actType')+' :'),
+    el('div',{class:'tog'},[['all',t('st_any')],['A',t('T_A')],['M',t('T_M')],['N',t('T_N')],['R',t('T_R')],['any',t('st_joker')]].map(([v,l])=>el('button',{class:stCard.act===v?'on':'',title:v==='all'?null:l,onclick:()=>{stCard.act=v;renderStats();}},v==='all'?l:el('span',{},icon('t_'+v,16),' '+l))))));
   box.appendChild(el('div',{class:'pcard'},el('h3',{},t('st_cards')),el('div',{class:'muted',style:'margin-bottom:6px'},t('st_note')),cbar,
     sortable([
       {h:t('st_card'),f:r=>r.c.name,r:r=>el('span',{},thumb(r.c.id),r.c.name)},
       {h:t('st_type'),f:r=>r.c.type+r.c.lvl,r:r=>el('span',{},icon('t_'+r.c.type,20),' ',r.c.lvl?icon('lv_'+r.c.lvl,18):el('span',{class:'muted',style:'font-size:12px'},t('L_0')))},
+      {h:t('st_actType'),f:r=>({A:1,M:2,N:3,R:4,any:5})[r.c.act]||9,r:r=>r.c.act?el('span',{title:actName(r.c.act)},actIc(r.c.act)):el('span',{class:'muted'},'—')},
       {h:t('st_hired'),num:1,f:r=>r.h/N,r:r=>barCell(r.h/N,1,pct(r.h,N))},
       {h:t('st_cost'),num:1,f:r=>r.cost.length?avg(r.cost):-1,r:r=>el('span',{},r.cost.length?avg(r.cost).toFixed(1):'—')},
       {h:t('st_hiredWin'),num:1,f:r=>r.h?r.hw/r.h:-1,r:r=>el('span',{},pct(r.hw,r.h))},
@@ -977,7 +989,7 @@ function renderStats(){
 let simCfg={rule:homeRule,games:50,players:2,depth:2,countries:[],gens:10,perGen:24,tPlayers:2,rush:true};
 let job=null; // {kind, total, done, results:[], log:[], worker}
 function makeWorker(){
-  try{ return new Worker('sim-worker.js?v=2611271150'); }catch(e){ return null; }
+  try{ return new Worker('sim-worker.js?v=2611271700'); }catch(e){ return null; }
 }
 function runJob(kind,manual){
   if(job&&job.running) return;
