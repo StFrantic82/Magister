@@ -12,13 +12,21 @@ const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},se
 // =========== TRADUCTION ===========
 E.setTree({on:true,iters:400});   // Flaminia (Difficile) réfléchit par MCTS dans les parties jouées
 let LANG=store.get('mag_lang'); if(!DICT[LANG]){ const n=(navigator.language||'fr').slice(0,2); LANG=DICT[n]?n:'fr'; }
+// Règle choisie à l'accueil ('classic' = 8 PV, 'six' = règle des 6) ; en partie, c'est la règle de la partie qui compte.
+let homeRule=store.get('mag_rule')==='six'?'six':'classic';
+function curRules(){ try{ const g=document.getElementById('game'); if(S&&g&&!g.classList.contains('hidden')) return E.rulesOf(S); }catch(e){} return E.RULESETS[homeRule]; }
+const SIXTXT=[['8 PV','6 PV'],['8 VP','6 VP'],['8 points de victoire','6 points de victoire'],['8 victory points','6 victory points'],['8 punti vittoria','6 punti vittoria'],['8 puntos de victoria','6 puntos de victoria'],
+ ['8 [infl]','6 [infl]'],['Coût : 8 influence','Coût : 6 influence'],['Cost: 8 influence','Cost: 6 influence'],['Costo: 8 influenza','Costo: 6 influenza'],['Coste: 8 de influencia','Coste: 6 de influencia'],
+ ['3 PV pour le premier, 2 PV ensuite','2 PV pour le premier, 1 PV ensuite'],['3 VP for the first, 2 VP afterwards','2 VP for the first, 1 VP afterwards'],['3 PV per il primo, poi 2 PV','2 PV per il primo, poi 1 PV'],['3 PV para el primero, 2 PV después','2 PV para el primero, 1 PV después'],
+ ['(3 puis 2)','(2 puis 1)'],['(3, then 2)','(2, then 1)'],['(3, poi 2)','(2, poi 1)'],['(3 y luego 2)','(2 y luego 1)']];
+function ruleTxt(d){ if(curRules().goal!==6) return d; for(const [a,b] of SIXTXT) if(d.indexOf(a)>=0) d=d.split(a).join(b); return d; }
 function tm(x){
   if(x==null) return ''; if(typeof x==='string'||typeof x==='number') return String(x);
   if(Array.isArray(x)) return x.map(tm).join(', ');
   if(x.m==='+') return x.a.map(tm).join(' + ');
   const d=DICT[LANG][x.m]!==undefined?DICT[LANG][x.m]:(DICT.fr[x.m]!==undefined?DICT.fr[x.m]:x.m);
   const a=(x.a||[]).map(tm);
-  return typeof d==='function'?d(a):d.replace(/\{(\d)\}/g,(_,i)=>a[i]!==undefined?a[i]:'');
+  return typeof d==='function'?d(a):(String(x.m).startsWith('ui_rule')?d:ruleTxt(d)).replace(/\{(\d)\}/g,(_,i)=>a[i]!==undefined?a[i]:'');
 }
 const t=(k,...a)=>tm({m:k,a});
 const TN=ty=>t('T_'+ty), LN=l=>t('L_'+l), WN=w=>t('W_'+w);
@@ -28,12 +36,14 @@ function applyStatic(){
   document.querySelectorAll('[data-i18n-html]').forEach(n=>n.innerHTML=t(n.dataset.i18nHtml));
   document.querySelectorAll('.langbar button').forEach(b=>b.classList.toggle('on',b.dataset.lang===LANG));
   $('#langSel').value=LANG;
+  document.querySelectorAll('#ruleSeg button').forEach(b=>b.classList.toggle('on',b.dataset.r===homeRule)); const rs=$('#ruleSub'); if(rs) rs.textContent=t(homeRule==='six'?'ui_rule6Sub':'ui_rule8Sub');
   if(!db && !onlineFailed) $('#onlineOff').textContent=t('ui_onlineWait');
   if(onlineFailed) $('#onlineOff').textContent=t('ui_onlineNo');
 }
 function setLang(l){ LANG=l; store.set('mag_lang',l); 
 applyStatic(); renderSeats(); countryBoxes('#cboxL',true); if(table&&table.status==='lobby') renderTable(); if(S) render(); if(view==='tuto') renderTuto(); if(view==='stats'&&STATS) renderStats(); if(view==='sim') renderSim(); }
 document.querySelectorAll('.langbar button').forEach(b=>b.onclick=()=>setLang(b.dataset.lang));
+document.querySelectorAll('#ruleSeg button').forEach(b=>b.onclick=()=>{ homeRule=b.dataset.r; store.set('mag_rule',homeRule); setLang(LANG); });
 $('#langSel').onchange=e=>setLang(e.target.value);
 
 let hist=[], myLastVer=-1;
@@ -100,7 +110,7 @@ $('#startLocal').onclick=()=>{
   const cs=pickedCountries('#cboxL');
   if(cs.length && cs.length!==3){ alertBox(t('ui_pick3')); return; }
   if(seats[0].name) store.set('mag_name',seats[0].name);
-  S=E.newGame({players:seats.map((s,k)=>({name:s.name||(k===0?t('ui_me'):t('ui_player1')+' '+(k+1)),ai:s.ai,lvl:s.ai?(s.lvl||defLvl()):undefined,color:s.color})),countries:cs.length?cs:null,seed:(Math.random()*2**32)>>>0});
+  S=E.newGame({players:seats.map((s,k)=>({name:s.name||(k===0?t('ui_me'):t('ui_player1')+' '+(k+1)),ai:s.ai,lvl:s.ai?(s.lvl||defLvl()):undefined,color:s.color})),countries:cs.length?cs:null,rules:homeRule,seed:(Math.random()*2**32)>>>0});
   startLocal();
 };
 $('#resumeLocal').onclick=()=>{ try{ S=JSON.parse(store.get('mag_local')); if(S.v!==2) throw 0; startLocal(); }catch(e){ store.del('mag_local'); checkResume(); } };
@@ -160,7 +170,7 @@ function boardHelp(pl){
     el('div',{},el('b',{},t('ui_promoCosts')+' '),
       row('stu','prof',[C(Math.max(0,3-red)),' + ',I('#')]),
       row('prof','emer',[C(Math.max(0,6-red)),' + ',I('#')]),
-      row('prof','rect',[C(red?'#−2':'#'),' + ',I(8)]),
+      row('prof','rect',[C(red?'#−2':'#'),' + ',I(curRules().rcost)]),
       el('span',{class:'muted',style:'font-size:12px'},t('ui_promoPosNote'))),
     el('div',{},el('b',{},t('ui_boardAct')+' '),D.TYPES.map(ty=>el('span',{class:'bh',title:tm(E.effsTxt(D.BOARD[ty]))},icon('t_'+ty,20,'width:20px'),'→',...D.BOARD[ty].map(fx=>fx.b?icon('book',22,''):fx.c?C(fx.c):fx.i?I(fx.i):fx.t?el('span',{style:'display:inline-flex;align-items:center'},icon('trav',22,''),el('b',{},fx.t)):el('span',{},tm(E.effsTxt([fx]))))))));
 }
@@ -228,7 +238,7 @@ function render(){
   const sel=selectableIds();
   const sc=$('#score'); sc.innerHTML='';
   S.players.forEach((pl,k)=>sc.appendChild(el('div',{class:'chip'+(S.pending&&S.pending.p===k?' active':'')},el('span',{class:'dot',style:'background:'+pl.color}),pl.name,el('span',{class:'vp'},E.vp(S,k)+' '+t('ui_vp')))));
-  $('#tinfo').textContent=(S.endTriggered?t('ui_last')+' · ':'')+t('ui_round',Math.max(1,Math.ceil(S.turnNo/S.players.length)))+(mode==='online'&&tableCode?' · '+t('ui_table',tableCode):'');
+  $('#tinfo').textContent=(S.endTriggered?t('ui_last')+' · ':'')+t('ui_round',Math.max(1,Math.ceil(S.turnNo/S.players.length)))+' · '+E.rulesOf(S).goal+' '+t('ui_vp')+(mode==='online'&&tableCode?' · '+t('ui_table',tableCode):'');
   // rangée
   const row=$('#row'); row.innerHTML='';
   row.appendChild(el('div',{class:'decks'},el('img',{src:'cards/back3.webp',alt:''}),el('div',{},t('ui_deckS',S.deck.length)),el('img',{src:'book/back.webp',alt:''}),el('div',{},t('ui_deckB',S.bookDeck.length))));
@@ -481,7 +491,7 @@ function renderTable(){
 async function startOnline(){
   const cs=pickedCountries('#cboxO');
   if(cs.length && cs.length!==3){ $('#onlineMsg').textContent=t('ui_pick3'); return; }
-  const st=E.newGame({players:table.seats.map((s,k)=>({name:s.name,ai:s.ai,lvl:s.ai?(s.lvl||3):undefined,uid:s.uid,color:s.color||SEATCOL[k]})),countries:cs.length?cs:null,seed:(Math.random()*2**32)>>>0});
+  const st=E.newGame({players:table.seats.map((s,k)=>({name:s.name,ai:s.ai,lvl:s.ai?(s.lvl||3):undefined,uid:s.uid,color:s.color||SEATCOL[k]})),countries:cs.length?cs:null,rules:homeRule,seed:(Math.random()*2**32)>>>0});
   st.ver=1;
   await db.doc('tables/'+table.code).update({status:'play',state:JSON.stringify(st),rev:1});
 }
@@ -572,7 +582,7 @@ async function renderFbAdmin(){
 // =========== TUTORIEL ===========
 let tutoStep=0;
 const TUTO=[
- {k:'s1',vis:()=>[el('img',{src:'tok/box.webp'}),el('div',{style:'display:flex;flex-direction:column;gap:8px;align-items:center'},icon('laurel',70),el('div',{class:'fell',style:'font-size:40px;color:var(--wine2)'},'8'))]},
+ {k:'s1',vis:()=>[el('img',{src:'tok/box.webp'}),el('div',{style:'display:flex;flex-direction:column;gap:8px;align-items:center'},icon('laurel',70),el('div',{class:'fell',style:'font-size:40px;color:var(--wine2)'},String(curRules().goal)))]},
  {k:'s2',vis:()=>{ const d=el('div',{style:'display:grid;grid-template-columns:auto 50px auto 90px auto;grid-template-rows:auto 70px auto;align-items:center;justify-items:center;gap:0'});
    const ar=(rot,w)=>el('div',{style:'width:'+w+'px;height:4px;background:var(--wine2);position:relative;transform:rotate('+rot+'deg);border-radius:2px'},el('div',{style:'position:absolute;right:-2px;top:-6px;border-left:12px solid var(--wine2);border-top:8px solid transparent;border-bottom:8px solid transparent'}));
    const lab=(ic,h,k)=>el('div',{style:'display:flex;flex-direction:column;align-items:center;gap:4px'},icon(ic,h),el('span',{class:'fell',style:'font-size:15px;color:var(--wine2)'},t(k)));
@@ -585,7 +595,7 @@ const TUTO=[
  {k:'s5',vis:()=>[el('img',{src:'tok/playerboard.webp',class:'sm'}),el('img',{src:'rect/2b.webp',class:'sm',style:'max-height:120px'})]},
  {k:'s6',vis:()=>[icon('trav',70),el('img',{src:'city/pisa.webp',class:'sm',style:'max-height:150px'}),el('img',{src:'city/padova.webp',class:'sm',style:'max-height:150px'}),el('img',{src:'city/bologna.webp',class:'sm',style:'max-height:150px'})]},
  {k:'s7',vis:()=>[el('img',{src:'book/16.webp',class:'sm'}),el('img',{src:'book/23.webp',class:'sm'}),el('div',{style:'display:flex;gap:6px;flex-wrap:wrap;max-width:180px;justify-content:center'},['c2','i2','book','pai','mus','thea'].map(x=>el('img',{src:'let/'+x+'.webp',style:'width:50px;box-shadow:none'})))]},
- {k:'s8',vis:()=>[el('img',{src:'obj/A1.webp',class:'sm',style:'max-height:140px'}),el('img',{src:'obj/D2.webp',class:'sm',style:'max-height:140px'}),el('div',{style:'display:flex;gap:6px'},el('img',{src:'tok/vp3.webp',style:'width:56px;box-shadow:none'}),el('img',{src:'tok/vp2.webp',style:'width:56px;box-shadow:none'}))]},
+ {k:'s8',vis:()=>[el('img',{src:'obj/A1.webp',class:'sm',style:'max-height:140px'}),el('img',{src:'obj/D2.webp',class:'sm',style:'max-height:140px'}),el('div',{style:'display:flex;gap:6px'},el('img',{src:'tok/vp'+curRules().tok[0]+'.webp',style:'width:56px;box-shadow:none'}),el('img',{src:'tok/vp'+curRules().tok[1]+'.webp',style:'width:56px;box-shadow:none'}))]},
  {k:'s9',vis:()=>[el('img',{src:'cards/45.webp',class:'sm'}),el('div',{style:'display:flex;flex-direction:column;gap:8px;align-items:center'},el('img',{src:'city/samarkand.webp',class:'sm',style:'max-height:110px'}),el('img',{src:'rect/5a.webp',class:'sm',style:'max-height:110px'}))]},
 ];
 function richTxt(s){ const IC={A:'t_A',M:'t_M',N:'t_N',R:'t_R',stu:'stu',prof:'prof',emer:'emer',rect:'rect',coin:'coin',infl:'infl',trav:'trav'}; return s.split(/(\[[a-zA-Z]+\])/).map(x=>{ const m=x.match(/^\[([a-zA-Z]+)\]$/); return m&&IC[m[1]]?icon(IC[m[1]],22,'margin:0 2px'):x; }); }
@@ -605,7 +615,7 @@ function renderTuto(){
 }
 function startTutoGame(){
   const me=seats[0]&&seats[0].name||t('ui_me');
-  S=E.newGame({players:[{name:me,ai:false,color:seats[0]&&seats[0].color||PALETTE[0]},{name:'Flaminia (IA)',ai:true,lvl:3,color:LVLCOL[3][0]}],countries:['ITA','FRA','ENG'],seed:(Math.random()*2**32)>>>0});
+  S=E.newGame({players:[{name:me,ai:false,color:seats[0]&&seats[0].color||PALETTE[0]},{name:'Flaminia (IA)',ai:true,lvl:3,color:LVLCOL[3][0]}],countries:['ITA','FRA','ENG'],rules:homeRule,seed:(Math.random()*2**32)>>>0});
   S.tutorial=true; coachSeen={}; coachOn=true;
   startLocal(); setTimeout(()=>startTour(0),700);
 }
@@ -698,7 +708,7 @@ async function saveWeights(w,gen){
 }
 
 // =========== STATISTIQUES ===========
-let STATS=null, stFilter={src:'all',n:'all'}, stSort={}, STRESET=0, stCard={lvl:'all',type:'all'};
+let STATS=null, stFilter={src:'all',n:'all',rule:'all'}, stSort={}, STRESET=0, stCard={lvl:'all',type:'all'};
 async function loadStats(){
   const box=$('#stats');
   if(!STATS){
@@ -769,13 +779,14 @@ function renderStats(){
   box.appendChild(el('div',{class:'filters'},
     el('label',{},t('st_source'),sel('src',[['all',t('st_all')],['human',t('st_human')],['sim',t('st_sim')],['train',t('st_train')]],stFilter.src,v=>{stFilter.src=v;renderStats();})),
     el('label',{},t('st_players'),sel('n',[['all',t('st_any')],['2','2'],['3','3'],['4','4']],stFilter.n,v=>{stFilter.n=v;renderStats();})),
+    el('label',{},t('ui_rule'),sel('rule',[['all',t('st_all')],['classic',t('ui_rule8')],['six',t('ui_rule6')]],stFilter.rule,v=>{stFilter.rule=v;renderStats();})),
     el('span',{class:'muted',style:'color:#e9d7b0'},STATS.shared?t('st_shared'):t('st_localOnly')),
     el('span',{class:'spacer',style:'flex:1'}),
     el('button',{class:'small',onclick:async()=>{ try{ await navigator.clipboard.writeText(JSON.stringify(games)); alertBox(t('st_copied')); }catch(e){} }},t('st_copy')),
     el('button',{class:'small',onclick:resetStats},t('st_reset')),
     el('button',{class:'small primary',id:'pdfBtn',onclick:exportPDF},'⤓ '+t('st_pdf'))));
   if(STRESET) box.appendChild(el('div',{class:'muted',style:'color:#e9d7b0;margin-top:6px'},t('st_since',new Date(STRESET).toLocaleString(LANG))));
-  const games=STATS.all.filter(g=>(stFilter.src==='all'||g.src===stFilter.src)&&(stFilter.n==='all'||g.n===+stFilter.n));
+  const games=STATS.all.filter(g=>(stFilter.src==='all'||g.src===stFilter.src)&&(stFilter.n==='all'||g.n===+stFilter.n)&&(stFilter.rule==='all'||(g.rule||'classic')===stFilter.rule));
   if(!games.length){ box.appendChild(el('div',{class:'pcard'},el('p',{},t('st_empty')))); return; }
   const N=games.length;
   // KPIs
@@ -963,10 +974,10 @@ function renderStats(){
 }
 
 // =========== SIMULATIONS ===========
-let simCfg={games:50,players:2,depth:2,countries:[],gens:10,perGen:24,tPlayers:2,rush:true};
+let simCfg={rule:homeRule,games:50,players:2,depth:2,countries:[],gens:10,perGen:24,tPlayers:2,rush:true};
 let job=null; // {kind, total, done, results:[], log:[], worker}
 function makeWorker(){
-  try{ return new Worker('sim-worker.js?v=2611270955'); }catch(e){ return null; }
+  try{ return new Worker('sim-worker.js?v=2611271150'); }catch(e){ return null; }
 }
 function runJob(kind,manual){
   if(job&&job.running) return;
@@ -984,8 +995,8 @@ function runJob(kind,manual){
     if(view==='sim') renderSim(true);
   };
   w.onerror=e=>{ console.error(e); job.running=false; job.log.unshift('⚠ '+(e.message||'error')); renderSim(); };
-  if(kind==='batch') w.postMessage({cmd:'batch',games:simCfg.games,players:simCfg.players,countries:cs,depth:simCfg.depth,weights:manual?myW():E.getWeights()});
-  else w.postMessage({cmd:'train',gens:simCfg.gens,perGen:simCfg.perGen,players:simCfg.tPlayers,countries:cs,depth:simCfg.depth,weights:E.getWeights(),sigma:0.25,rush:simCfg.rush,target:11});
+  if(kind==='batch') w.postMessage({cmd:'batch',games:simCfg.games,players:simCfg.players,countries:cs,depth:simCfg.depth,rule:simCfg.rule,weights:manual?myW():E.getWeights()});
+  else w.postMessage({cmd:'train',gens:simCfg.gens,perGen:simCfg.perGen,players:simCfg.tPlayers,countries:cs,depth:simCfg.depth,rule:simCfg.rule,weights:E.getWeights(),sigma:0.25,rush:simCfg.rush,target:11});
   renderSim();
 }
 async function finishJob(){
@@ -1012,6 +1023,7 @@ function renderSim(light){
       el('label',{},t('si_games'),el('select',{onchange:e=>{simCfg.games=+e.target.value;}},[50,100,500,1000].map(v=>el('option',{value:v,selected:simCfg.games===v?'':null},String(v))))),
       el('label',{},t('si_players'),seg('players',[[2,'2'],[3,'3'],[4,'4']])),
       el('label',{},t('si_speed'),seg('depth',[[2,t('si_normal')],[1,t('si_fast')],[3,t('si_mcts')]])),
+      el('label',{},t('ui_rule'),seg('rule',[['classic',t('ui_rule8')],['six',t('ui_rule6')]])),
       el('button',{class:'primary',disabled:busy?'':null,onclick:()=>{ simCfg.countries=pickedCountries('#cboxS'); runJob('batch'); }},t('si_run')),
       busy&&job.kind==='batch'?el('button',{onclick:stopJob},t('si_stop')):null),
     el('div',{class:'flab row-f',style:'justify-content:space-between'},el('span',{},t('si_countries')),el('button',{class:'dice',onclick:()=>randomCountries('#cboxS')},el('span',{class:'die'},'⚄'),el('span',{},t('si_random')))),

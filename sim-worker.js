@@ -3,9 +3,9 @@ self.window=self;
 importScripts('data.js?'+(self.location.search.slice(1)||''),'engine.js?'+(self.location.search.slice(1)||''));
 const E=self.MagEngine;
 let stop=false;
-function play(nPlayers,countries,ws,seed){
+function play(nPlayers,countries,ws,seed,rules){
   const players=[...Array(nPlayers)].map((_,k)=>({name:'IA '+(k+1),ai:true,w:ws?ws[k]:null}));
-  const s=E.newGame({players,countries,seed});
+  const s=E.newGame({players,countries,seed,rules});
   let n=0; while(!s.over && n<5000){ E.choose(s,E.aiChoose(s)); n++; }
   return s;
 }
@@ -20,7 +20,7 @@ self.onmessage=async ev=>{
   if(m.cmd==='batch'){
     for(let g=0; g<m.games && !stop; g++){
       const t0=Date.now();
-      const s=play(m.players,pickCountries(m.countries),null,(Math.random()*2**32)>>>0);
+      const s=play(m.players,pickCountries(m.countries),null,(Math.random()*2**32)>>>0,m.rule);
       self.postMessage({type:'game',i:g+1,ms:Date.now()-t0,sum:E.summary(s,'sim')});
       await new Promise(r=>setTimeout(r,0));
     }
@@ -34,7 +34,7 @@ self.onmessage=async ev=>{
       for(let g=0; g<m.perGen && !stop; g++){
         // le challenger occupe une place sur deux, en alternant
         const ws=[...Array(m.players)].map((_,k)=>((k+g)%2===0)?ch:best);
-        const s=play(m.players,pickCountries(m.countries),ws,(Math.random()*2**32)>>>0);
+        const s=play(m.players,pickCountries(m.countries),ws,(Math.random()*2**32)>>>0,m.rule);
         games++; rounds+=s.turnNo/m.players;
         const chSeats=ws.map((w,k)=>w===ch?k:-1).filter(k=>k>=0);
         expSum+=chSeats.length/m.players;

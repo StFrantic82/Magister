@@ -55,6 +55,7 @@ function effsTxt(a){ return PLUS(a.map(effTxt)); }
 function newGame(opts){
   const s = {v:2, rng:(opts.seed>>>0)||((Math.random()*2**32)>>>0), log:[], stack:[], pending:null, over:false, ver:0, uidc:0};
   const n = opts.players.length;
+  s.rules = Object.assign({}, RULESETS[opts.rules]||RULESETS.classic, TESTVAR||{}); s.ruleSet = RULESETS[opts.rules]?opts.rules:'classic'; syncRules(s);
   s.players = opts.players.map((p,k)=>({name:p.name, ai:!!p.ai, lvl:p.ai?(p.lvl||3):undefined, uid:p.uid||null, color:p.color||COLORS[k], coins:0, infl:0, hand:[], played:[],
     students:[], profs:[], emer:[], rector:null, virt:null, trav:[0,0,0], emTok:{}, bologna:0, constTok:[], cities:0, w:p.w||null,
     hires:[], citiesK:[], promos:{S:0,E:0,R:0}, booksTurn:[]}));
@@ -67,7 +68,7 @@ function newGame(opts){
   const l3 = shuffle(s, D.cards.filter(c=>c.id>=17 && !D.DECK2.includes(c.id)).map(c=>c.id));
   s.deck = [...l2, ...l3];
   s.row = []; for(let k=0;k<6;k++) s.row.push(s.deck.length?{id:s.deck.shift(),letters:[]}:null);
-  const rt = shuffle(s, D.rectors.map(r=>r.id)).slice(0,4);
+  const rt = shuffle(s, D.rectors.map(r=>r.id).filter(id=>!VAR.noRect.includes(id))).slice(0,4);
   s.rectSlots = {}; ['N','R','A','M'].forEach((t,k)=>s.rectSlots[t]=rt[k]); s.rectSlotsInit=Object.assign({},s.rectSlots);
   const ob = shuffle(s,['A','B','C','D']);
   s.objSlots = {}; ['N','R','A','M'].forEach((t,k)=>{ const side = rnd(s)<0.5?1:2; s.objSlots[t]={tile:ob[k]+side, stack:[VAR.tok[0], ...Array(n-1).fill(VAR.tok[1])]}; });
@@ -135,7 +136,7 @@ function needs(s,p){
   const pl=P(s,p); const red=hasRect(pl,'4a')?2:0; let c=0,i=3; // ~3 d'influence pour recruter au tour suivant
   if(pl.students.length) { c=Math.max(c,3-red); i=Math.max(i,1+1); }
   if(pl.profs.length) { c=Math.max(c,ECOST-red); i=Math.max(i,2); }
-  if(!pl.rector && pl.profs.some(co=>s.rectSlots[CARD[co.id].type])) { i=Math.max(i,8+1); c=Math.max(c,1); }
+  if(!pl.rector && pl.profs.some(co=>s.rectSlots[CARD[co.id].type])) { i=Math.max(i,VAR.rcost+1); c=Math.max(c,1); }
   pl.hand.forEach(b=>{ const k=BOOK[b].cond.k; if(k==='coins') c=Math.max(c,10); if(k==='infl') i=Math.max(i,10); });
   D.TYPES.forEach(t=>{ const o=s.objSlots[t]; if(o.tile==='B1' && pl.emTok[t]===undefined && o.stack.length){ c=Math.max(c,6); i=Math.max(i,6); } });
   if(hasRect(pl,'2b')){ const m=c+i; return {c:m,i:m}; }
@@ -449,7 +450,7 @@ function promoOptions(s,p){
   const pl=P(s,p), out=[]; const red=hasRect(pl,'4a')?2:0;
   pl.students.forEach((co,k)=>{ const c=Math.max(0,3-red), i=k+1; if(canPay(pl,c,i)) out.push({label:M('o_promoSP',cn(co.id),c,i),to:'S',idx:k,cards:[co.id]}); });
   pl.profs.forEach((co,k)=>{ const c=Math.max(0,ECOST-red), i=k+1; if(canPay(pl,c,i)) out.push({label:M('o_promoPE',cn(co.id),c,i),to:'E',idx:k,cards:[co.id]}); });
-  if(!pl.rector) pl.profs.forEach((co,k)=>{ const ty=CARD[co.id].type; if(!s.rectSlots[ty]) return; const c=Math.max(0,k+1-red); if(canPay(pl,c,8)) out.push({label:M('o_promoPR',cn(co.id),8,c,M('R_'+s.rectSlots[ty])),to:'R',idx:k,cards:[co.id]}); });
+  if(!pl.rector) pl.profs.forEach((co,k)=>{ const ty=CARD[co.id].type; if(!s.rectSlots[ty]) return; const c=Math.max(0,k+1-red); if(canPay(pl,c,VAR.rcost)) out.push({label:M('o_promoPR',cn(co.id),VAR.rcost,c,M('R_'+s.rectSlots[ty])),to:'R',idx:k,cards:[co.id]}); });
   return out;
 }
 function doPromo(s,p,to,idx,free){
@@ -457,7 +458,7 @@ function doPromo(s,p,to,idx,free){
   if(to==='S'){ const co=pl.students[idx]; if(!co) return; if(!free) pay(pl,Math.max(0,3-red),idx+1); pl.students.splice(idx,1); pl.profs.push(co); log(s,M(free?'log_promoSPfree':'log_promoSP',pl.name,cn(co.id))); return; }
   if(to==='E'){ const co=pl.profs[idx]; if(!co) return; if(!free) pay(pl,Math.max(0,ECOST-red),idx+1); pl.profs.splice(idx,1); pl.emer.push(co); log(s,M(free?'log_promoPEfree':'log_promoPE',pl.name,cn(co.id))); return; }
   if(to==='R'){ const co=pl.profs[idx]; const ty=CARD[co.id].type; const tile=s.rectSlots[ty]; if(!tile) return;
-    if(!free) pay(pl,Math.max(0,idx+1-red),8); pl.profs.splice(idx,1); pl.rector={card:co,tile,type:ty}; s.rectSlots[ty]=null;
+    if(!free) pay(pl,Math.max(0,idx+1-red),VAR.rcost); pl.profs.splice(idx,1); pl.rector={card:co,tile,type:ty}; s.rectSlots[ty]=null;
     log(s,M('log_rector',pl.name,cn(co.id),M('R_'+tile)));
     if(tile==='2b') drawBooks(s,p,1);
     if(tile==='5a') s.stack.push({k:'fes',p,noAct:true});
@@ -591,7 +592,7 @@ function evalState(s,p){
     v+=(W.rpow===undefined?1:W.rpow)*perTurn*left*unit + (pl.rector.tile==='3b'?3:0);
   }
   // progression vers le Recteur : influence épargnée si un Professeur peut y prétendre
-  if(!pl.rector && pl.profs.some(co=>s.rectSlots[CARD[co.id].type])) v+=Math.min(pl.infl,8)*(W.rprog||0);
+  if(!pl.rector && pl.profs.some(co=>s.rectSlots[CARD[co.id].type])) v+=Math.min(pl.infl,VAR.rcost)*(W.rprog||0);
   // progression vers l'Émérite : pièces épargnées si un Professeur peut être promu
   if(pl.profs.length) v+=Math.min(pl.coins,6)*(W.eprog||0);
   let opp=0; s.players.forEach((q,k)=>{ if(k!==p) opp=Math.max(opp,vp(s,k)); }); v-=opp*W.opp;
@@ -602,8 +603,12 @@ let LIN=null;
 let ECOST=6;   // coût en pièces de la promotion Professeur → Émérite (variante testable)
 function setECost(x){ ECOST=x||6; }
 // variantes de règles testables en simulation (valeurs officielles par défaut)
-const VAR={goal:8,tok:[3,2],maxObj:0};
-function setVariant(o){ Object.assign(VAR,{goal:8,tok:[3,2],maxObj:0},o||{}); if(o&&o.ecost) ECOST=o.ecost; }
+const RULESETS={classic:{goal:8,tok:[3,2],rcost:8}, six:{goal:6,tok:[2,1],rcost:6}};   // règle d'origine / « règle des 6 »
+const VAR={goal:8,tok:[3,2],maxObj:0,rcost:8,noRect:[]};   // règles de la partie en cours de calcul (recopiées depuis s.rules)
+let TESTVAR=null;
+function syncRules(s){ Object.assign(VAR,{goal:8,tok:[3,2],maxObj:0,rcost:8,noRect:[]},s&&s.rules||{}); }
+function rulesOf(s){ return Object.assign({},RULESETS.classic,s&&s.rules||{}); }
+function setVariant(o){ TESTVAR=o&&Object.keys(o).length?Object.assign({},o):null; if(o&&o.ecost) ECOST=o.ecost; }
 function setLin(o){ LIN=o||null; }
 function evalFeat(s,p){
   const pl=P(s,p), n=s.players.length, f={};
@@ -630,8 +635,8 @@ function evalFeat(s,p){
   f.rpow=pl.rector?({'1a':0.8,'1b':1.3,'2a':0.7,'2b':0.5,'3a':0.7,'3b':0.4,'4a':0.8,'4b':1.3}[pl.rector.tile]||0)*left:0;
   f.r3b=pl.rector&&pl.rector.tile==='3b'?1:0;
   const rcan=!pl.rector && pl.profs.some(c=>s.rectSlots[CARD[c.id].type]);
-  f.rprog=rcan?Math.min(pl.infl,8):0; f.eprog=pl.profs.length?Math.min(pl.coins,ECOST):0;
-  f.rready=rcan&&pl.infl>=8?1:0; f.eready=pl.profs.length&&pl.coins>=ECOST-(hasRect(pl,'4a')?2:0)?1:0;
+  f.rprog=rcan?Math.min(pl.infl,VAR.rcost):0; f.eprog=pl.profs.length?Math.min(pl.coins,ECOST):0;
+  f.rready=rcan&&pl.infl>=VAR.rcost?1:0; f.eready=pl.profs.length&&pl.coins>=ECOST-(hasRect(pl,'4a')?2:0)?1:0;
   f.sready=pl.students.length&&pl.coins>=3-(hasRect(pl,'4a')?2:0)?1:0;
   let opp=0; s.players.forEach((q,k)=>{ if(k!==p) opp=Math.max(opp,vp(s,k)); }); f.opp=opp;
   f.early=left*0.1; f.one=1;
@@ -643,7 +648,7 @@ function evalLin(s,p){
 }
 function summary(s,src){
   const n=s.players.length;
-  return {t:Date.now(),src,n,cs:s.tracks.slice(),vpr:s.vpRounds||[],deckOut:!!s.deckOut,turns:s.turnNo,rounds:Math.round(s.turnNo/n*10)/10,start:s.start,
+  return {t:Date.now(),src,n,rule:s.ruleSet||'classic',cs:s.tracks.slice(),vpr:s.vpRounds||[],deckOut:!!s.deckOut,turns:s.turnNo,rounds:Math.round(s.turnNo/n*10)/10,start:s.start,
     rects:Object.assign({},s.rectSlotsInit||{}),objs:Object.fromEntries(Object.entries(s.objSlots).map(([k,o])=>[k,o.tile])),
     players:s.players.map((pl,k)=>{ const r=s.ranking.findIndex(x=>x.k===k);
       return {seat:(k-(s.start||0)+n)%n,ai:pl.ai,lvl:pl.ai?(pl.lvl||3):undefined,vp:vp(s,k),rank:r+1,win:s.winners.includes(k),start:pl.start||[],g:pl.g||{},first:pl.first||{},nAct:pl.nAct||0,nPromo:pl.nPromo||0,slots:pl.hireSlot||[],letters:pl.lettersK||[],trav:pl.trav.slice(),hires:pl.hires||[],hcost:pl.hireCost||[],
@@ -718,7 +723,7 @@ function fastChoose(s){
     if(o.play!==undefined) v+=100;
     if(o.endTurn) v+=50;
     if(o.disc!==undefined) v+=(pd.kind==='end'?10:-20);
-    if(o.hire!==undefined){ const c=hireCost(s,p,o.hire,false); v+=cardValF(s.row[o.hire].id)-c*FP.cost - (rectWant && pl.infl-c<8 && pl.infl>=8 ? FP.save8:0); }
+    if(o.hire!==undefined){ const c=hireCost(s,p,o.hire,false); v+=cardValF(s.row[o.hire].id)-c*FP.cost - (rectWant && pl.infl-c<VAR.rcost && pl.infl>=VAR.rcost ? FP.save8:0); }
     if(o.slot!==undefined && s.row[o.slot]) v+=cardValF(s.row[o.slot].id);
     if(o.act){ v+=FP.act0+pl.profs.filter(co=>CARD[co.id].trig.includes(o.act)).length*FP.act; }
     if(o.promo) v+=promoOptions(s,p).some(x=>x.to!=='S')?FP.promoER:FP.promoS;
@@ -735,7 +740,7 @@ function fastChoose(s){
 }
 function playout(c,p,cap){
   let n=0, at8=null;
-  while(!c.over && c.pending && n<cap){ choose(c,fastChoose(c)); n++; if(at8===null && vp(c,p)>=8) at8=c.turnNo; }
+  while(!c.over && c.pending && n<cap){ choose(c,fastChoose(c)); n++; if(at8===null && vp(c,p)>=VAR.goal) at8=c.turnNo; }
   return at8;
 }
 let MC={on:false, sims:6, cap:4000};
@@ -764,7 +769,7 @@ function bestNextTurn(c,p){
   if(!c.pending||c.pending.kind!=='turn') return evalState(c,p);
   let bv=-1e9;
   const O=c.pending.opts;
-  for(let k=0;k<O.length;k++){ if(O[k].disc!==undefined) continue; const d=simClone(c); choose(d,k); finishOwnTurn(d,p); const v=evalState(d,p)+(vp(d,p)>=8?40:0); if(v>bv) bv=v; }
+  for(let k=0;k<O.length;k++){ if(O[k].disc!==undefined) continue; const d=simClone(c); choose(d,k); finishOwnTurn(d,p); const v=evalState(d,p)+(vp(d,p)>=VAR.goal?40:0); if(v>bv) bv=v; }
   return bv;
 }
 function aiPlan(s){
@@ -774,9 +779,9 @@ function aiPlan(s){
     const o=pd.opts[k]; if(o.disc!==undefined && pd.kind==='turn') continue;
     let c; try{ c=simClone(s); choose(c,k); }catch(e){ continue; }
     finishOwnTurnGreedy(c,p);
-    const now=evalState(c,p)+(vp(c,p)>=8?60:0);
+    const now=evalState(c,p)+(vp(c,p)>=VAR.goal?60:0);
     let v=now;
-    if(!c.over && vp(c,p)<8){ v=0.4*now+0.6*bestNextTurn(c,p); }
+    if(!c.over && vp(c,p)<VAR.goal){ v=0.4*now+0.6*bestNextTurn(c,p); }
     if(v>bv){ bv=v; best=k; }
   }
   return best;
@@ -860,7 +865,7 @@ function aiChooseHard(s,depth){
     for(let r=0;r<MC.sims;r++){
       const c=simClone(s); c.rng=(c.rng+r*7919+k*104729)>>>0;
       try{ choose(c,k); }catch(e){ tot=-1e9; break; }
-      const at8=(vp(c,p)>=8)?c.turnNo:playout(c,p,MC.cap);
+      const at8=(vp(c,p)>=VAR.goal)?c.turnNo:playout(c,p,MC.cap);
       tot+=mcScore(c,p,at8);
     }
     const v=tot/MC.sims + (pd.opts[k].pass?-0.05:0);
@@ -869,5 +874,7 @@ function aiChooseHard(s,depth){
   return best;
 }
 
-global.MagEngine = {hiddenClone, setVariant, setECost, setTree, getTree:()=>Object.assign({},TREE), setLin, evalFeat, bookAction, canBookAct, wild, W_VERSION, setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
+global.MagEngine = {RULESETS, rulesOf, hiddenClone, setVariant, setECost, setTree, getTree:()=>Object.assign({},TREE), setLin, evalFeat, bookAction, canBookAct, wild, W_VERSION, setPlan, setFP, getFP:()=>Object.assign({},FP), setMC, fastChoose, setAIDepth, COLORS, summary, setWeights, DEFAULT_W, getWeights:()=>Object.assign({},GLOBAL_W), newGame, choose, aiChoose, vp, CARD, BOOK, bookOk, woaList, effsTxt, effTxt, clone, TR, M};
+// chaque appel venant de l'extérieur active d'abord les règles de la partie concernée
+Object.keys(global.MagEngine).forEach(k=>{ const fn=global.MagEngine[k]; if(typeof fn!=='function'||k==='rulesOf') return; global.MagEngine[k]=function(a){ if(a&&typeof a==='object'&&a.players&&a.stack) syncRules(a); return fn.apply(this,arguments); }; });
 })(typeof window!=='undefined'?window:globalThis);
