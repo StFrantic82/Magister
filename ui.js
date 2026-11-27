@@ -17,8 +17,8 @@ let homeRule=store.get('mag_rule')==='six'?'six':'classic';
 function curRules(){ try{ const g=document.getElementById('game'); if(S&&g&&!g.classList.contains('hidden')) return E.rulesOf(S); }catch(e){} return E.RULESETS[homeRule]; }
 const SIXTXT=[['8 PV','6 PV'],['8 VP','6 VP'],['8 points de victoire','6 points de victoire'],['8 victory points','6 victory points'],['8 punti vittoria','6 punti vittoria'],['8 puntos de victoria','6 puntos de victoria'],
  ['8 [infl]','6 [infl]'],['Coût : 8 influence','Coût : 6 influence'],['Cost: 8 influence','Cost: 6 influence'],['Costo: 8 influenza','Costo: 6 influenza'],['Coste: 8 de influencia','Coste: 6 de influencia'],
- ['3 PV pour le premier, 2 PV ensuite','2 PV pour le premier, 1 PV ensuite'],['3 VP for the first, 2 VP afterwards','2 VP for the first, 1 VP afterwards'],['3 PV per il primo, poi 2 PV','2 PV per il primo, poi 1 PV'],['3 PV para el primero, 2 PV después','2 PV para el primero, 1 PV después'],
- ['(3 puis 2)','(2 puis 1)'],['(3, then 2)','(2, then 1)'],['(3, poi 2)','(2, poi 1)'],['(3 y luego 2)','(2 y luego 1)']];
+ ['3 PV pour le premier, 2 PV ensuite','2 PV pour le premier ; le deuxième prend 1 PV à 3 joueurs, 2 PV à 4 joueurs (aucun à 2 joueurs)'],['3 VP for the first, 2 VP afterwards','2 VP for the first; the second takes 1 VP with 3 players, 2 VP with 4 (none with 2 players)'],['3 PV per il primo, poi 2 PV','2 PV per il primo; il secondo prende 1 PV a 3 giocatori, 2 PV a 4 (nessuno a 2 giocatori)'],['3 PV para el primero, 2 PV después','2 PV para el primero; el segundo toma 1 PV con 3 jugadores, 2 PV con 4 (ninguno con 2 jugadores)'],
+ ['(3 puis 2)','(2, puis 1 ou 2 selon le nombre de joueurs)'],['(3, then 2)','(2, then 1 or 2 depending on the number of players)'],['(3, poi 2)','(2, poi 1 o 2 a seconda del numero di giocatori)'],['(3 y luego 2)','(2, luego 1 o 2 según el número de jugadores)']];
 function ruleTxt(d){ if(curRules().goal!==6) return d; for(const [a,b] of SIXTXT) if(d.indexOf(a)>=0) d=d.split(a).join(b); return d; }
 function tm(x){
   if(x==null) return ''; if(typeof x==='string'||typeof x==='number') return String(x);
@@ -989,7 +989,7 @@ function renderStats(){
 let simCfg={rule:homeRule,games:50,players:2,depth:2,countries:[],gens:10,perGen:24,tPlayers:2,rush:true};
 let job=null; // {kind, total, done, results:[], log:[], worker}
 function makeWorker(){
-  try{ return new Worker('sim-worker.js?v=2611271710'); }catch(e){ return null; }
+  try{ return new Worker('sim-worker.js?v=2611271935'); }catch(e){ return null; }
 }
 function runJob(kind,manual){
   if(job&&job.running) return;

@@ -71,7 +71,7 @@ function newGame(opts){
   const rt = shuffle(s, D.rectors.map(r=>r.id).filter(id=>!VAR.noRect.includes(id))).slice(0,4);
   s.rectSlots = {}; ['N','R','A','M'].forEach((t,k)=>s.rectSlots[t]=rt[k]); s.rectSlotsInit=Object.assign({},s.rectSlots);
   const ob = shuffle(s,['A','B','C','D']);
-  s.objSlots = {}; ['N','R','A','M'].forEach((t,k)=>{ const side = rnd(s)<0.5?1:2; s.objSlots[t]={tile:ob[k]+side, stack:[VAR.tok[0], ...Array(n-1).fill(VAR.tok[1])]}; });
+  s.objSlots = {}; ['N','R','A','M'].forEach((t,k)=>{ const side = rnd(s)<0.5?1:2; s.objSlots[t]={tile:ob[k]+side, stack:(VAR.tokBy&&VAR.tokBy[n]?VAR.tokBy[n].slice():[VAR.tok[0], ...Array(n-1).fill(VAR.tok[1])].slice(0,Math.max(1,Math.min(n+(VAR.tokOff||0),VAR.tokMax||99))))}; });
   s.letters = D.letters.map(l=>l.id);
   s.bookDeck = shuffle(s, D.books.map(b=>b.id)); s.bookDisc = [];
   s.players.forEach((pl,k)=>drawBooks(s,k,2,true));
@@ -603,10 +603,10 @@ let LIN=null;
 let ECOST=6;   // coût en pièces de la promotion Professeur → Émérite (variante testable)
 function setECost(x){ ECOST=x||6; }
 // variantes de règles testables en simulation (valeurs officielles par défaut)
-const RULESETS={classic:{goal:8,tok:[3,2],rcost:8}, six:{goal:6,tok:[2,1],rcost:6}};   // règle d'origine / « règle des 6 »
+const RULESETS={classic:{goal:8,tok:[3,2],rcost:8}, six:{goal:6,tok:[2,1],rcost:6,tokBy:{2:[2],3:[2,1],4:[2,2]}}};   // règle des 6 : un jeton de moins que de joueurs (2 · 2/1 · 2/2)   // règle d'origine / « règle des 6 »
 const VAR={goal:8,tok:[3,2],maxObj:0,rcost:8,noRect:[]};   // règles de la partie en cours de calcul (recopiées depuis s.rules)
 let TESTVAR=null;
-function syncRules(s){ Object.assign(VAR,{goal:8,tok:[3,2],maxObj:0,rcost:8,noRect:[]},s&&s.rules||{}); }
+function syncRules(s){ Object.assign(VAR,{goal:8,tok:[3,2],maxObj:0,rcost:8,noRect:[],tokBy:null,tokOff:0,tokMax:0},s&&s.rules||{}); }
 function rulesOf(s){ return Object.assign({},RULESETS.classic,s&&s.rules||{}); }
 function setVariant(o){ TESTVAR=o&&Object.keys(o).length?Object.assign({},o):null; if(o&&o.ecost) ECOST=o.ecost; }
 function setLin(o){ LIN=o||null; }
