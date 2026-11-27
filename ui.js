@@ -989,7 +989,7 @@ function renderStats(){
 let simCfg={rule:homeRule,games:50,players:2,depth:2,countries:[],gens:10,perGen:24,tPlayers:2,rush:true};
 let job=null; // {kind, total, done, results:[], log:[], worker}
 function makeWorker(){
-  try{ return new Worker('sim-worker.js?v=2611271700'); }catch(e){ return null; }
+  try{ return new Worker('sim-worker.js?v=2611271710'); }catch(e){ return null; }
 }
 function runJob(kind,manual){
   if(job&&job.running) return;
