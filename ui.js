@@ -944,8 +944,8 @@ function renderStats(){
   games.forEach(g=>{ Object.entries(g.objs||{}).forEach(([ty,o])=>{ os[o].app++; const cl=g.players.filter(p=>p.em[ty]!==undefined), k=cl.length; os[o].n+=k; os[o].w+=cl.filter(p=>p.win).length; if(k) os[o].rc.push(g.rounds); }); });
   const ct={}; Object.keys(D.countries).forEach(c=>ct[c]={id:c,n:0,r:[]});
   games.forEach(g=>g.cs.forEach(c=>{ if(ct[c]){ ct[c].n++; ct[c].r.push(g.rounds); } }));
-  const cy={}; Object.entries(D.countries).forEach(([c,C])=>C.cities.forEach(x=>cy[x[1]]={k:x[1],c,app:0,n:0}));
-  games.forEach(g=>{ g.cs.forEach(c=>D.countries[c].cities.forEach(x=>cy[x[1]].app++)); g.players.forEach(p=>p.cities.forEach(k=>{ if(cy[k]) cy[k].n++; })); });
+  const cy={}; Object.entries(D.countries).forEach(([c,C])=>C.cities.forEach(x=>cy[x[1]]={k:x[1],c,app:0,n:0,pn:0,pw:0}));
+  games.forEach(g=>{ g.cs.forEach(c=>D.countries[c].cities.forEach(x=>cy[x[1]].app++)); g.players.forEach(p=>{ p.cities.forEach(k=>{ if(cy[k]) cy[k].n++; }); new Set(p.cities).forEach(k=>{ if(cy[k]){ cy[k].pn++; if(p.win) cy[k].pw++; } }); }); });
   box.appendChild(el('div',{class:'two'},
     el('div',{class:'pcard'},el('h3',{},t('st_objs')),sortable([
       {h:t('st_obj'),f:r=>t('O_'+r.id),r:r=>{ const im=el('img',{class:'th',src:'obj/'+r.id+'.webp'}); im.onclick=()=>zoomImg('obj/'+r.id+'.webp',t('st_obj'),t('O_'+r.id)); return el('span',{},im,t('O_'+r.id)); }},
@@ -958,14 +958,15 @@ function renderStats(){
   box.appendChild(el('div',{class:'pcard'},el('h3',{},t('st_cities')),sortable([
       {h:t('st_city'),f:r=>t('CY_'+r.k),r:r=>el('span',{},el('img',{class:'th',src:'city/'+r.k+'.webp'}),t('CY_'+r.k),el('span',{class:'muted'},' — '+t('C_'+r.c)))},
       {h:t('st_games'),num:1,f:r=>r.app},
-      {h:t('st_reached'),num:1,f:r=>r.app?r.n/r.app:-1,r:r=>barCell(r.app?r.n/r.app:0,Math.max(...Object.values(cy).map(x=>x.app?x.n/x.app:0)),r.app?(r.n/r.app).toFixed(2):'—')}],Object.values(cy).filter(x=>x.app),'cities')));
+      {h:t('st_reached'),num:1,f:r=>r.app?r.n/r.app:-1,r:r=>barCell(r.app?r.n/r.app:0,Math.max(...Object.values(cy).map(x=>x.app?x.n/x.app:0)),r.app?(r.n/r.app).toFixed(2):'—')},
+      {h:t('st_cityWin'),num:1,f:r=>r.pn?r.pw/r.pn:-1,r:r=>el('span',{},r.pn?Math.round(100*r.pw/r.pn)+'%':'—')}],Object.values(cy).filter(x=>x.app),'cities')));
 }
 
 // =========== SIMULATIONS ===========
 let simCfg={games:50,players:2,depth:2,countries:[],gens:10,perGen:24,tPlayers:2,rush:true};
 let job=null; // {kind, total, done, results:[], log:[], worker}
 function makeWorker(){
-  try{ return new Worker('sim-worker.js?v=2611270815'); }catch(e){ return null; }
+  try{ return new Worker('sim-worker.js?v=2611270955'); }catch(e){ return null; }
 }
 function runJob(kind,manual){
   if(job&&job.running) return;
