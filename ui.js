@@ -433,7 +433,7 @@ function genCode(){ const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(le
 function myName(){ const n=($('#myName').value||'').trim()||t('ui_player1'); store.set('mag_name',n); return n; }
 $('#createTable').onclick=async()=>{
   const code=genCode();
-  try{ await db.doc('tables/'+code).set({code,host:myUid,status:'lobby',seats:[{name:myName(),uid:myUid,ai:false}],state:null,rev:0,created:Date.now()}); subscribe(code); }
+  try{ await db.doc('tables/'+code).set({code,host:myUid,status:'lobby',seats:[{name:myName(),uid:myUid,ai:false}],rules:homeRule,state:null,rev:0,created:Date.now()}); subscribe(code); }
   catch(e){ $('#onlineMsg').textContent=t('ui_createErr',e.code||e.message); }
 };
 $('#joinBtn').onclick=async()=>{
@@ -479,6 +479,12 @@ function renderTable(){
     host&&k>0?el('button',{class:'small',onclick:async()=>{ await db.doc('tables/'+table.code).update({seats:table.seats.filter((_,j)=>j!==k)}); }},t('ui_remove')):null));
     if(palOpen===100+k && table.status==='lobby') b.appendChild(colorRow(col,table.seats.filter((o,j)=>j!==k).map((o,j)=>o.color||SEATCOL[j]),async c=>{ palOpen=-1; const ns=table.seats.map((o,j)=>j===k?Object.assign({},o,{color:c}):o); await db.doc('tables/'+table.code).update({seats:ns}); })); });
   if(table.status==='lobby'){
+    // Règle de la table : choisie par l'hôte, affichée à tous les joueurs du salon.
+    const tr=table.rules==='six'?'six':'classic';
+    b.appendChild(el('div',{style:'margin-top:8px'},el('div',{class:'flab'},t('ui_rule')),
+      host?el('div',{class:'seg segw',id:'ruleSegO'},['classic','six'].map(r=>el('button',{'data-r':r,class:r===tr?'on':null,onclick:async()=>{ if(r===tr) return; await db.doc('tables/'+table.code).update({rules:r}); }},t(r==='six'?'ui_rule6':'ui_rule8'))))
+          :el('div',{class:'fell',id:'ruleTxtO',style:'font-size:17px;color:var(--wine2)'},t(tr==='six'?'ui_rule6':'ui_rule8')),
+      el('div',{class:'muted'},t(tr==='six'?'ui_rule6Sub':'ui_rule8Sub'))));
     if(host){
       b.appendChild(el('div',{class:'row-f',style:'margin-top:6px'},
         el('button',{disabled:table.seats.length>=4?'':null,onclick:async()=>{ const n=aiName(defLvl(),table.seats,null), nc=aiColor(defLvl(),table.seats,null); await db.doc('tables/'+table.code).update({seats:[...table.seats,{name:n,uid:null,ai:true,lvl:defLvl(),color:nc}]}); }},t('ui_addAI')),
@@ -491,7 +497,7 @@ function renderTable(){
 async function startOnline(){
   const cs=pickedCountries('#cboxO');
   if(cs.length && cs.length!==3){ $('#onlineMsg').textContent=t('ui_pick3'); return; }
-  const st=E.newGame({players:table.seats.map((s,k)=>({name:s.name,ai:s.ai,lvl:s.ai?(s.lvl||3):undefined,uid:s.uid,color:s.color||SEATCOL[k]})),countries:cs.length?cs:null,rules:homeRule,seed:(Math.random()*2**32)>>>0});
+  const st=E.newGame({players:table.seats.map((s,k)=>({name:s.name,ai:s.ai,lvl:s.ai?(s.lvl||3):undefined,uid:s.uid,color:s.color||SEATCOL[k]})),countries:cs.length?cs:null,rules:table.rules==='six'?'six':'classic',seed:(Math.random()*2**32)>>>0});
   st.ver=1;
   await db.doc('tables/'+table.code).update({status:'play',state:JSON.stringify(st),rev:1});
 }
@@ -989,7 +995,7 @@ function renderStats(){
 let simCfg={rule:homeRule,games:50,players:2,depth:2,countries:[],gens:10,perGen:24,tPlayers:2,rush:true};
 let job=null; // {kind, total, done, results:[], log:[], worker}
 function makeWorker(){
-  try{ return new Worker('sim-worker.js?v=2611271935'); }catch(e){ return null; }
+  try{ return new Worker('sim-worker.js?v=2611280900'); }catch(e){ return null; }
 }
 function runJob(kind,manual){
   if(job&&job.running) return;
